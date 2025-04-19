@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>McDonald's Drive-Thru AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .chat-container {
+            height: calc(100vh - 180px);
+        }
+        .message {
+            max-width: 80%;
+            margin: 8px;
+            padding: 12px;
+            border-radius: 15px;
+        }
+        .user-message {
+            background-color: #e2e8f0;
+            margin-left: auto;
+        }
+        .bot-message {
+            background-color: #ffd700;
+            margin-right: auto;
+        }
+        .topic-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .topic-card:hover {
+            transform: scale(1.05);
+        }
+        .order-panel {
+            background-color: #fff;
+            border-left: 1px solid #e5e7eb;
+            height: 100vh;
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 300px;
+            z-index: 50;
+            overflow-y: auto;
+        }
+        .needs-clarification {
+            border: 1px dashed #fbbf24;
+            background-color: #fef3c7 !important;
+        }
+        .thinking-cue {
+            display: flex;
+            align-items: center;
+            color: #888;
+            font-style: italic;
+            margin: 10px 0 10px 0;
+            font-size: 1rem;
+        }
+        .thinking-cue .dot {
+            height: 8px;
+            width: 8px;
+            margin: 0 2px;
+            background-color: #bbb;
+            border-radius: 50%;
+            display: inline-block;
+            animation: thinking-bounce 1.4s infinite both;
+        }
+        .thinking-cue .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .thinking-cue .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes thinking-bounce {
+            0%, 80%, 100% { transform: scale(1); }
+            40% { transform: scale(1.5); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 pr-[324px]">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-red-600 mb-2">McDonald's Drive-Thru AI</h1>
+            <p class="text-gray-600">Welcome! How can I help you with your order today?</p>
+        </div>
+
+        <!-- Quick Order Topics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="topic-card bg-white p-4 rounded-lg shadow-md text-center" onclick="sendMessage('Show me the burger menu')">
+                <h3 class="font-bold text-lg mb-2">🍔 Burgers</h3>
+                <p class="text-sm text-gray-600">View our delicious burger selection</p>
+            </div>
+            <div class="topic-card bg-white p-4 rounded-lg shadow-md text-center" onclick="sendMessage('What chicken sandwiches do you have?')">
+                <h3 class="font-bold text-lg mb-2">🍗 Chicken</h3>
+                <p class="text-sm text-gray-600">Check out our chicken options</p>
+            </div>
+            <div class="topic-card bg-white p-4 rounded-lg shadow-md text-center" onclick="sendMessage('Show me the sides menu')">
+                <h3 class="font-bold text-lg mb-2">🍟 Sides</h3>
+                <p class="text-sm text-gray-600">Browse our tasty sides</p>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="bg-white rounded-lg shadow-md">
+            <div id="chat-container" class="chat-container overflow-y-auto p-4">
+                <div class="message bot-message">
+                    Hi! Welcome to McDonald's! What can I get for you today? 🍔
+                </div>
+            </div>
+            
+            <div class="border-t p-4">
+                <div class="flex space-x-4">
+                    <input type="text" id="message-input" 
+                           class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" 
+                           placeholder="Type your order here..."
+                           onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()" 
+                            id="send-button"
+                            disabled
+                            class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Panel -->
+    <div class="order-panel p-4">
+        <h2 class="text-xl font-bold mb-4 text-red-600">Your Order</h2>
+        <div id="order-items" class="space-y-4 mb-4">
+            <!-- Order items will be inserted here -->
+        </div>
+        <div class="border-t pt-4">
+            <div class="flex justify-between items-center font-bold">
+                <span>Total:</span>
+                <span id="order-total">$0.00</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">* Items needing clarification are not included in total</p>
+        </div>
+    </div>
+
+    <script>
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const chatContainer = document.getElementById('chat-container');
+        const orderItems = document.getElementById('order-items');
+        const orderTotal = document.getElementById('order-total');
+        const sessionId = Date.now().toString(); // Generate unique session ID
+
+        // Enable/disable send button based on input
+        messageInput.addEventListener('input', function() {
+            sendButton.disabled = !this.value.trim();
+        });
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !sendButton.disabled) {
+                sendMessage();
+            }
+        }
+
+        function updateOrderPanel(orderData) {
+            const orderItems = document.getElementById('order-items');
+            const orderTotal = document.getElementById('order-total');
+            
+            // Clear current items
+            orderItems.innerHTML = '';
+            
+            // Add each item
+            if (orderData.items && orderData.items.length > 0) {
+                orderData.items.forEach((item, index) => {
+                    // Get menu item details
+                    fetch(`/menu_item/${item.id}`)
+                        .then(response => response.json())
+                        .then(menuItem => {
+                            const itemCard = document.createElement('div');
+                            itemCard.className = `bg-white rounded-lg shadow p-4 mb-4 ${item.status !== 'confirmed' ? 'needs-clarification' : ''}`;
+                            
+                            // Create the header with item name and remove button
+                            const header = document.createElement('div');
+                            header.className = 'flex justify-between items-start mb-2';
+                            
+                            const namePrice = document.createElement('div');
+                            namePrice.className = 'flex-grow';
+                            namePrice.innerHTML = `
+                                <div class="flex justify-between items-baseline">
+                                    <h3 class="font-bold">${menuItem.name}</h3>
+                                    <div class="text-sm text-gray-600">
+                                        ${item.quantity > 1 ? `${item.quantity}x ` : ''}$${item.price.toFixed(2)}
+                                    </div>
+                                </div>
+                                <div class="text-gray-600 text-sm">
+                                    ${item.quantity > 1 ? `Subtotal: $${(item.price * item.quantity).toFixed(2)}` : ''}
+                                </div>
+                            `;
+                            
+                            const removeBtn = document.createElement('button');
+                            removeBtn.className = 'text-red-500 hover:text-red-700 ml-2';
+                            removeBtn.innerHTML = '×';
+                            removeBtn.onclick = () => removeItem(index);
+                            
+                            header.appendChild(namePrice);
+                            header.appendChild(removeBtn);
+                            itemCard.appendChild(header);
+                            
+                            // Add customizations if any
+                            if (item.customizations && Object.keys(item.customizations).length > 0) {
+                                const customList = document.createElement('div');
+                                customList.className = 'mt-2 text-sm';
+                                
+                                Object.entries(item.customizations).forEach(([key, value]) => {
+                                    const customItem = document.createElement('div');
+                                    customItem.className = 'flex items-center text-gray-600 mb-1';
+                                    customItem.innerHTML = `
+                                        <span class="capitalize">${key}:</span>
+                                        <span class="ml-1 font-medium">${value}</span>
+                                    `;
+                                    customList.appendChild(customItem);
+                                });
+                                
+                                itemCard.appendChild(customList);
+                            }
+                            
+                            // Add clarification needed message if applicable
+                            if (item.status !== 'confirmed') {
+                                const clarificationMsg = document.createElement('div');
+                                clarificationMsg.className = 'mt-2 text-sm text-yellow-600';
+                                clarificationMsg.innerHTML = `
+                                    <span class="inline-block mr-1">⚠️</span>
+                                    Needs ${item.clarification_needed}
+                                `;
+                                itemCard.appendChild(clarificationMsg);
+                            }
+                            
+                            orderItems.appendChild(itemCard);
+                        });
+                });
+            } else {
+                // Show empty state
+                orderItems.innerHTML = `
+                    <div class="text-center text-gray-500 py-4">
+                        Your order is empty
+                    </div>
+                `;
+            }
+            
+            // Update total
+            if (typeof orderData.total === 'number') {
+                orderTotal.textContent = `$${orderData.total.toFixed(2)}`;
+            } else {
+                console.error('Invalid total:', orderData.total);
+            }
+        }
+
+        function removeItem(index) {
+            fetch('/update_order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    action: 'remove',
+                    index: index
+                })
+            })
+            .then(response => response.json())
+            .then(orderData => {
+                updateOrderPanel(orderData);
+            });
+        }
+
+        function sendMessage(predefinedMessage = null) {
+            const message = predefinedMessage || messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            appendMessage(message, 'user');
+            
+            // Clear input
+            messageInput.value = '';
+            sendButton.disabled = true;
+            showThinkingCue();
+            fetch('/send_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    session_id: sessionId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideThinkingCue();
+                console.log('[DEBUG] /send_message response:', data);
+                if (data.error) {
+                    appendMessage('Sorry, there was an error processing your request. Please try again.', 'bot');
+                } else {
+                    // Update order panel with the latest order data
+                    if (data.order) {
+                        updateOrderPanel(data.order);
+                    }
+                    try {
+                        if (typeof data.response === 'object' && data.response !== null) {
+                            appendMessage(JSON.stringify(data.response, null, 2), 'bot');
+                        } else {
+                            appendMessage(data.response, 'bot');
+                        }
+                    } catch (e) {
+                        console.log('Failed to parse response as JSON:', e);  // Debug logging
+                        // Not a JSON response, just show it normally
+                        appendMessage(data.response, 'bot');
+                    }
+                }
+            })
+            .catch(error => {
+                hideThinkingCue();
+                console.error('Error:', error);
+                appendMessage('Sorry, there was an error processing your request. Please try again.', 'bot');
+            })
+            .finally(() => {
+                sendButton.disabled = false;
+            });
+        }
+
+        function appendMessage(content, role) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}-message`;
+            messageDiv.textContent = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showThinkingCue() {
+            let cue = document.getElementById('thinking-cue');
+            if (!cue) {
+                cue = document.createElement('div');
+                cue.id = 'thinking-cue';
+                cue.className = 'thinking-cue';
+                cue.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span> Thinking...';
+                chatContainer.appendChild(cue);
+            }
+        }
+        function hideThinkingCue() {
+            const cue = document.getElementById('thinking-cue');
+            if (cue) cue.remove();
+        }
+    </script>
+</body>
+</html>
