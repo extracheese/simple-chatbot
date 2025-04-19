@@ -83,21 +83,22 @@ class Order:
                     
                 # Check if this option is required
                 is_required = options_data.get('required', False)
-                has_options = bool(options_data.get('options'))
+                available_options = options_data.get('options', [])
                 
-                if has_options:
+                if available_options:
                     if is_required:
                         # If required but not specified, mark as needing clarification
                         missing_required = option_type
                         break
                     else:
-                        # If not required, use the first option
-                        if isinstance(options_data['options'][0], dict):
-                            # Handle case where options are objects with 'name' field
-                            customizations[option_type] = options_data['options'][0]['name']
-                        else:
-                            # Handle case where options are simple strings
-                            customizations[option_type] = options_data['options'][0]
+                        # If not required, use the default option if available
+                        if available_options:
+                            if isinstance(available_options[0], dict):
+                                # Handle case where options are objects with 'name' field
+                                customizations[option_type] = available_options[0]['name']
+                            else:
+                                # Handle case where options are simple strings
+                                customizations[option_type] = available_options[0]
             
             # Update status based on whether all required options are specified
             if missing_required:

@@ -131,8 +131,26 @@ class MenuProcessor:
         for option_type, value in customizations.items():
             if option_type not in item.customization_options:
                 return False, f"Invalid customization type: {option_type}"
-            if value not in item.customization_options[option_type]:
+            
+            # Get available options for this customization type
+            options_data = item.customization_options[option_type]
+            available_options = options_data.get('options', [])
+            
+            # Check if the value matches any of the available options
+            valid_value = False
+            for option in available_options:
+                option_value = option['name'] if isinstance(option, dict) else option
+                if value == option_value:
+                    valid_value = True
+                    break
+            
+            if not valid_value:
                 return False, f"Invalid {option_type} option: {value}"
+        
+        # Check if all required customizations are provided
+        for option_type, options_data in item.customization_options.items():
+            if options_data.get('required', False) and option_type not in customizations:
+                return False, f"Missing required {option_type} customization"
         
         return True, None
 
