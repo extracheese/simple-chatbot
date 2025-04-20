@@ -1,6 +1,12 @@
 import json
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Any
 from dataclasses import dataclass
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, 
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 @dataclass
 class MenuItem:
@@ -9,10 +15,32 @@ class MenuItem:
     price: float
     category: str
     description: Optional[str] = None
-    customization_options: Dict[str, List[str]] = None
+    customization_options: Dict[str, Dict[str, Any]] = None
     sizes: List[str] = None
     variants: List[str] = None
     allergens: List[str] = None
+
+    def get_default_customizations(self) -> Dict[str, Any]:
+        """Get the default customizations for this item"""
+        if not self.customization_options:
+            return {}
+            
+        defaults = {}
+        try:
+            for category, options in self.customization_options.items():
+                logger.debug(f"Processing defaults for category: {category}")
+                logger.debug(f"Options data: {options}")
+                if "default" in options:
+                    defaults[category] = options["default"]
+                elif "defaults" in options:
+                    defaults[category] = options["defaults"]
+            logger.debug(f"Final defaults: {defaults}")
+        except Exception as e:
+            logger.error(f"Error processing defaults for item: {self.name}")
+            logger.error(f"Customization options: {self.customization_options}")
+            logger.exception(e)
+            raise
+        return defaults
 
 class MenuProcessor:
     def __init__(self):
@@ -20,164 +48,232 @@ class MenuProcessor:
         self.menu_text_chunks = []
 
     def process_menu(self, menu_file: str) -> int:
-        with open(menu_file, 'r') as f:
-            menu_data = json.load(f)
+        logger.info(f"Processing menu file: {menu_file}")
+        try:
+            with open(menu_file, 'r') as f:
+                menu_data = json.load(f)
+                logger.debug(f"Loaded menu data: {menu_data.keys()}")
 
-        # Process each menu item
-        for category in menu_data['restaurant']['menu']:
-            category_name = category.get('category', '')
-            for item in category.get('items', []):
-                item_id = item['id']  # Use the ID directly from the JSON
+            # Process each menu item
+            restaurant_data = menu_data.get('restaurant', {})
+            logger.debug(f"Restaurant data keys: {restaurant_data.keys()}")
+            
+            menu = menu_data.get('menu', [])
+            logger.debug(f"Found {len(menu)} menu categories")
+            
+            for category in menu:
+                category_name = category.get('category', '')
+                items = category.get('items', [])
+                logger.debug(f"Processing category: {category_name} with {len(items)} items")
                 
-                # Extract customization options
-                customization_options = {}
-                if 'customizations' in item:  
-                    customization_options = item['customizations']
+                for item in items:
+                    try:
+                        item_id = item['id']
+                        logger.debug(f"Processing item: {item_id} - {item.get('name', 'NO NAME')}")
+                        
+                        # Extract customization options
+                        customization_options = {}
+                        if 'customizations' in item:
+                            logger.debug(f"Found customizations for {item_id}: {item['customizations']}")
+                            customization_options = item['customizations']
 
-                # Create MenuItem object
-                menu_item = MenuItem(
-                    id=item_id,
-                    name=item['name'],
-                    price=float(item.get('price', 0)),
-                    category=category_name,
-                    description=item.get('description', ''),
-                    customization_options=customization_options,
-                    sizes=customization_options.get('size', {}).get('options', []) if customization_options else [],
-                    variants=customization_options.get('variant', {}).get('options', []) if customization_options else [],
-                    allergens=item.get('allergens', [])
-                )
-                
-                self.menu_items[item_id] = menu_item
+                        # Create MenuItem object
+                        menu_item = MenuItem(
+                            id=item_id,
+                            name=item['name'],
+                            price=float(item.get('price', 0)),
+                            category=category_name,
+                            description=item.get('description', ''),
+                            customization_options=customization_options,
+                            sizes=customization_options.get('size', {}).get('options', []) if customization_options and 'size' in customization_options else [],
+                            variants=customization_options.get('variant', {}).get('options', []) if customization_options and 'variant' in customization_options else [],
+                            allergens=item.get('allergens', [])
+                        )
+                        
+                        self.menu_items[item_id] = menu_item
+                        logger.debug(f"Successfully added menu item: {item_id}")
 
-                # Create searchable text chunk
-                chunk_text = self._create_menu_item_text(menu_item)
-                self.menu_text_chunks.append((chunk_text, item_id))
+                        # Create searchable text chunk
+                        chunk_text = self._create_menu_item_text(menu_item)
+                        self.menu_text_chunks.append((chunk_text, item_id))
 
-        return len(self.menu_items)
+                    except Exception as e:
+                        logger.error(f"Error processing menu item: {item.get('id', 'NO ID')} - {item.get('name', 'NO NAME')}")
+                        logger.error(f"Item data: {item}")
+                        logger.exception(e)
+                        raise
+
+            logger.info(f"Successfully processed {len(self.menu_items)} menu items")
+            return len(self.menu_items)
+            
+        except Exception as e:
+            logger.error("Error processing menu file")
+            logger.error(f"Menu data: {menu_data}")
+            logger.exception(e)
+            raise
 
     def _create_menu_item_text(self, item: MenuItem) -> str:
         """Create a searchable text representation of a menu item"""
-        text_parts = [
-            f"Item: {item.name}",
-            f"Category: {item.category}",
-            f"Price: ${item.price:.2f}"
-        ]
-        
-        if item.description:
-            text_parts.append(f"Description: {item.description}")
-        
-        if item.sizes:
-            text_parts.append(f"Available sizes: {', '.join(item.sizes)}")
-        
-        if item.variants:
-            text_parts.append(f"Available variants: {', '.join(item.variants)}")
-        
-        if item.customization_options:
-            text_parts.append("Customization options:")
-            for option_type, options in item.customization_options.items():
-                text_parts.append(f"- {option_type}: {', '.join(options)}")
-        
-        if item.allergens:
-            text_parts.append(f"Allergens: {', '.join(item.allergens)}")
-        
-        return "\n".join(text_parts)
+        try:
+            text_parts = [
+                f"Name: {item.name}",
+                f"Price: ${item.price:.2f}",
+                f"Category: {item.category}"
+            ]
+            
+            if item.description:
+                text_parts.append(f"Description: {item.description}")
+                
+            if item.customization_options:
+                text_parts.append("Customization options:")
+                for option_type, options in item.customization_options.items():
+                    if 'options' in options:
+                        text_parts.append(f"- {option_type}: {', '.join(str(opt) for opt in options['options'])}")
+            
+            if item.allergens:
+                text_parts.append(f"Allergens: {', '.join(item.allergens)}")
+                
+            return "\n".join(text_parts)
+        except Exception as e:
+            logger.error(f"Error creating menu item text for item: {item.name}")
+            logger.error(f"Item data: {item}")
+            logger.exception(e)
+            raise
 
     def find_menu_items(self, query: str, current_order: Optional[Dict] = None) -> List[Tuple[str, str]]:
         """
         Find menu items relevant to the query, considering the current order context
         Returns a list of tuples (item_text, item_id)
         """
-        # Basic keyword matching for now
-        query = query.lower()
-        matches = []
-        
-        # First, check if this is a response to a pending clarification
-        if current_order and 'items' in current_order:
-            for item in current_order['items']:
-                if item.get('status') != 'confirmed':
-                    item_id = item.get('id')
-                    if item_id in self.menu_items:
-                        menu_item = self.menu_items[item_id]
-                        matches.append((self._create_menu_item_text(menu_item), item_id))
-                    break
-        
-        # Then look for new items in the query
-        for text, item_id in self.menu_text_chunks:
-            text_lower = text.lower()
-            # Simple keyword matching
-            if any(keyword in text_lower for keyword in query.split()):
-                matches.append((text, item_id))
-        
-        return matches
+        try:
+            # Basic keyword matching for now
+            query = query.lower()
+            matches = []
+            
+            # First, check if this is a response to a pending clarification
+            if current_order and 'items' in current_order:
+                for item in current_order['items']:
+                    if item.get('status') != 'confirmed':
+                        item_id = item.get('id')
+                        if item_id in self.menu_items:
+                            menu_item = self.menu_items[item_id]
+                            matches.append((self._create_menu_item_text(menu_item), item_id))
+                        break
+            
+            # Then look for new items in the query
+            for text, item_id in self.menu_text_chunks:
+                text_lower = text.lower()
+                # Simple keyword matching
+                if any(keyword in text_lower for keyword in query.split()):
+                    matches.append((text, item_id))
+            
+            return matches
+        except Exception as e:
+            logger.error("Error finding menu items")
+            logger.exception(e)
+            raise
 
     def get_menu_item(self, item_id: str) -> Optional[MenuItem]:
         """Get a menu item by its ID"""
-        return self.menu_items.get(item_id)
+        try:
+            logger.debug(f"Looking for menu item: {item_id}")
+            logger.debug(f"Available menu items: {list(self.menu_items.keys())}")
+            item = self.menu_items.get(item_id)
+            if item:
+                logger.debug(f"Found menu item: {item.name}")
+            else:
+                logger.debug(f"Menu item not found: {item_id}")
+            return item
+        except Exception as e:
+            logger.error(f"Error getting menu item: {item_id}")
+            logger.exception(e)
+            raise
 
     def validate_customization(self, item_id: str, customizations: Dict[str, str]) -> Tuple[bool, Optional[str]]:
         """
         Validate customization options for a menu item
         Returns (is_valid, error_message)
         """
-        item = self.menu_items.get(item_id)
-        if not item:
-            return False, "Item not found"
-        
-        if not item.customization_options:
-            if customizations:
-                return False, "This item doesn't support customization"
+        try:
+            item = self.menu_items.get(item_id)
+            if not item:
+                return False, "Item not found"
+            
+            if not item.customization_options:
+                if customizations:
+                    return False, "This item doesn't support customization"
+                return True, None
+            
+            for option_type, value in customizations.items():
+                if option_type not in item.customization_options:
+                    return False, f"Invalid customization type: {option_type}"
+                
+                # Get available options for this customization type
+                options_data = item.customization_options[option_type]
+                available_options = options_data.get('options', [])
+                
+                # Check if the value matches any of the available options
+                valid_value = False
+                for option in available_options:
+                    option_value = option['name'] if isinstance(option, dict) else option
+                    if value == option_value:
+                        valid_value = True
+                        break
+                
+                if not valid_value:
+                    return False, f"Invalid {option_type} option: {value}"
+            
+            # Check if all required customizations are provided
+            for option_type, options_data in item.customization_options.items():
+                if options_data.get('required', False) and option_type not in customizations:
+                    return False, f"Missing required {option_type} customization"
+            
             return True, None
-        
-        for option_type, value in customizations.items():
-            if option_type not in item.customization_options:
-                return False, f"Invalid customization type: {option_type}"
-            
-            # Get available options for this customization type
-            options_data = item.customization_options[option_type]
-            available_options = options_data.get('options', [])
-            
-            # Check if the value matches any of the available options
-            valid_value = False
-            for option in available_options:
-                option_value = option['name'] if isinstance(option, dict) else option
-                if value == option_value:
-                    valid_value = True
-                    break
-            
-            if not valid_value:
-                return False, f"Invalid {option_type} option: {value}"
-        
-        # Check if all required customizations are provided
-        for option_type, options_data in item.customization_options.items():
-            if options_data.get('required', False) and option_type not in customizations:
-                return False, f"Missing required {option_type} customization"
-        
-        return True, None
+        except Exception as e:
+            logger.error(f"Error validating customization for item: {item_id}")
+            logger.error(f"Customization options: {customizations}")
+            logger.exception(e)
+            raise
 
     def check_size_needed(self, item_id: str) -> bool:
         """Check if an item requires size selection"""
-        item = self.menu_items.get(item_id)
-        return item is not None and bool(item.sizes)
+        try:
+            item = self.menu_items.get(item_id)
+            return item is not None and bool(item.sizes)
+        except Exception as e:
+            logger.error(f"Error checking size needed for item: {item_id}")
+            logger.exception(e)
+            raise
 
     def check_variant_needed(self, item_id: str) -> bool:
         """Check if an item requires variant selection"""
-        item = self.menu_items.get(item_id)
-        return item is not None and bool(item.variants)
+        try:
+            item = self.menu_items.get(item_id)
+            return item is not None and bool(item.variants)
+        except Exception as e:
+            logger.error(f"Error checking variant needed for item: {item_id}")
+            logger.exception(e)
+            raise
 
     def get_item_options(self, item_id: str) -> Dict[str, List[str]]:
         """Get all available options for an item"""
-        item = self.menu_items.get(item_id)
-        if not item:
-            return {}
-        
-        options = {}
-        if item.sizes:
-            options['sizes'] = item.sizes
-        if item.variants:
-            options['variants'] = item.variants
-        if item.customization_options:
-            options['customization'] = item.customization_options
-        
-        return options
+        try:
+            item = self.menu_items.get(item_id)
+            if not item:
+                return {}
+            
+            options = {}
+            if item.sizes:
+                options['sizes'] = item.sizes
+            if item.variants:
+                options['variants'] = item.variants
+            if item.customization_options:
+                options['customization'] = item.customization_options
+            
+            return options
+        except Exception as e:
+            logger.error(f"Error getting item options for item: {item_id}")
+            logger.exception(e)
+            raise
 
 processor = MenuProcessor()

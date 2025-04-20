@@ -76,6 +76,15 @@
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8 pr-[324px]">
+        <!-- Model Selector -->
+        <div class="absolute top-4 right-4">
+            <select id="model-selector" 
+                    class="bg-white border border-red-600 text-gray-900 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 p-2.5">
+                <option value="gpt-4">Azure GPT-4</option>
+                <option value="gemini-2.5">Gemini 2.5</option>
+            </select>
+        </div>
+        
         <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-red-600 mb-2">McDonald's Drive-Thru AI</h1>
             <p class="text-gray-600">Welcome! How can I help you with your order today?</p>
@@ -144,6 +153,12 @@
         const orderItems = document.getElementById('order-items');
         const orderTotal = document.getElementById('order-total');
         const sessionId = Date.now().toString(); // Generate unique session ID
+        let currentModel = 'gpt-4';
+
+        document.getElementById('model-selector').addEventListener('change', function(e) {
+            currentModel = e.target.value;
+            addSystemMessage(`Switched to ${currentModel}`);
+        });
 
         // Enable/disable send button based on input
         messageInput.addEventListener('input', function() {
@@ -271,21 +286,24 @@
             const message = predefinedMessage || messageInput.value.trim();
             if (!message) return;
 
+            // Disable input and button while processing
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            
             // Add user message to chat
             appendMessage(message, 'user');
-            
-            // Clear input
             messageInput.value = '';
-            sendButton.disabled = true;
-            showThinkingCue();
+            
+            // Send to backend
             fetch('/send_message', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     message: message,
-                    session_id: sessionId
+                    session_id: sessionId,
+                    model: currentModel
                 })
             })
             .then(response => response.json())
@@ -319,6 +337,7 @@
             })
             .finally(() => {
                 sendButton.disabled = false;
+                messageInput.disabled = false;
             });
         }
 

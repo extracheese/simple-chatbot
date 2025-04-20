@@ -6,621 +6,603 @@
       "city": "Redwood City",
       "state": "CA",
       "zip": "94063"
+    }
+  },
+  "menu": [
+    {
+      "category": "Burgers",
+      "items": [
+        {
+          "id": "burger001",
+          "name": "Big Mac",
+          "description": "Two 100% beef patties, special sauce, lettuce, cheese, pickles, onions on a sesame seed bun.",
+          "price": 5.99,
+          "customizations": {
+            "bun": {
+              "options": ["Regular", "Steamed", "No Bun"],
+              "default": "Regular"
+            },
+            "cheese": {
+              "options": ["American", "No Cheese"],
+              "default": "American"
+            },
+            "toppings": {
+              "options": ["Lettuce", "Pickles", "Onions", "Tomato"],
+              "defaults": ["Lettuce", "Pickles", "Onions"]
+            },
+            "sauces": {
+              "options": ["Special Sauce", "Ketchup", "Mustard", "Mayo", "None"],
+              "defaults": ["Special Sauce"]
+            },
+            "extras": {
+              "options": [
+                {"name": "Extra Patty", "price": 2.00},
+                {"name": "Bacon", "price": 1.50}
+              ],
+              "defaults": []
+            }
+          },
+          "allergens": ["Gluten", "Dairy"]
+        },
+        {
+          "id": "burger002",
+          "name": "Quarter Pounder with Cheese",
+          "description": "Quarter pound 100% beef patty with cheese, onions, pickles, mustard, and ketchup on a sesame seed bun.",
+          "price": 5.49,
+          "customizations": {
+            "bun": {
+              "options": ["Regular", "Steamed", "No Bun"],
+              "default": "Regular"
+            },
+            "cheese": {
+              "options": ["American", "No Cheese"],
+              "default": "American"
+            },
+            "toppings": {
+              "options": ["Lettuce", "Pickles", "Onions", "Tomato"],
+              "defaults": ["Pickles", "Onions"]
+            },
+            "sauces": {
+              "options": ["Ketchup", "Mustard", "Mayo", "None"],
+              "defaults": ["Ketchup", "Mustard"]
+            },
+            "extras": {
+              "options": [
+                {"name": "Extra Patty", "price": 2.00},
+                {"name": "Bacon", "price": 1.50}
+              ],
+              "defaults": []
+            }
+          },
+          "allergens": ["Gluten", "Dairy"]
+        },
+        {
+          "id": "burger003",
+          "name": "Double Quarter Pounder with Cheese",
+          "description": "Two quarter pound 100% beef patties with cheese, onions, pickles, mustard, and ketchup on a sesame seed bun.",
+          "price": 6.99,
+          "customizations": {
+            "bun": {
+              "options": ["Regular", "Steamed", "No Bun"],
+              "default": "Regular"
+            },
+            "cheese": {
+              "options": ["American", "No Cheese"],
+              "default": "American"
+            },
+            "toppings": {
+              "options": ["Onions", "Pickles"],
+              "defaults": ["Onions", "Pickles"]
+            },
+            "sauces": {
+              "options": ["Ketchup", "Mustard", "None"],
+              "defaults": ["Ketchup", "Mustard"]
+            },
+            "extras": {
+              "options": [
+                {"name": "Bacon", "price": 1.50}
+              ],
+              "defaults": []
+            }
+          },
+          "allergens": ["Gluten", "Dairy"]
+        },
+        {
+          "id": "burger004",
+          "name": "Quarter Pounder with Cheese Deluxe",
+          "description": "Quarter pound 100% beef patty with cheese, lettuce, tomato, onions, pickles, mustard, and ketchup on a sesame seed bun.",
+          "price": 5.79,
+          "customizations": {
+            "bun": {
+              "options": ["Regular", "Steamed", "No Bun"],
+              "default": "Regular"
+            },
+            "cheese": {
+              "options": ["American", "No Cheese"],
+              "default": "American"
+            },
+            "toppings": {
+              "options": ["Lettuce", "Tomato", "Onions", "Pickles"],
+              "defaults": ["Lettuce", "Tomato", "Onions", "Pickles"]
+            },
+            "sauces": {
+              "options": ["Ketchup", "Mustard", "None"],
+              "defaults": ["Ketchup", "Mustard"]
+            },
+            "extras": {
+              "options": [
+                {"name": "Bacon", "price": 1.50}
+              ],
+              "defaults": []
+            }
+          },
+          "allergens": ["Gluten", "Dairy"]
+        },
+        {
+          "id": "burger005",
+          "name": "Bacon Quarter Pounder with Cheese",
+          "description": "Quarter pound 100% beef patty with cheese, bacon, onions, pickles, mustard, and ketchup on a sesame seed bun.",
+          "price": 6.29,
+          "customizations": {
+            "bun": {
+              "options": ["Regular", "Steamed", "No Bun"],
+              "default": "Regular"
+            },
+            "cheese": {
+              "options": ["American", "No Cheese"],
+              "default": "American"
+            },
+            "toppings": {
+              "options": ["Onions", "Pickles"],
+              "defaults": ["Onions", "Pickles"]
+            },
+            "sauces": {
+              "options": ["Ketchup", "Mustard", "None"],
+              "defaults": ["Ketchup", "Mustard"]
+            },
+            "extras": {
+              "options": [
+                {"name": "Extra Bacon", "price": 1.50}
+              ],
+              "defaults": []
+            }
+          },
+          "allergens": ["Gluten", "Dairy"]
+        },
+        {
+          "id": "burger007",
+          "name": "Double Cheeseburger",
+          "description": "Two 100% beef patties and two slices of cheese with pickles, onions, ketchup, and mustard on a bun.",
+          "price": 2.89,
+          "customizations": {
+            "toppings": {
+              "options": ["Onions", "Pickles"],
+              "defaults": ["Onions", "Pickles"]
+            },
+            "sauces": {
+              "options": ["Ketchup", "Mustard", "None"],
+              "defaults": ["Ketchup", "Mustard"]
+            }
+          },
+          "allergens": ["Gluten", "Dairy"]
+        },
+        {
+          "id": "burger008",
+          "name": "Cheeseburger",
+          "description": "100% beef patty with American cheese, pickles, onions, ketchup, and mustard.",
+          "price": 1.89,
+          "customizations": {
+            "toppings": {
+              "options": ["Onions", "Pickles"],
+              "defaults": ["Onions", "Pickles"]
+            },
+            "sauces": {
+              "options": ["Ketchup", "Mustard", "None"],
+              "defaults": ["Ketchup", "Mustard"]
+            }
+          },
+          "allergens": ["Gluten", "Dairy"]
+        },
+        {
+          "id": "burger009",
+          "name": "Hamburger",
+          "description": "100% beef patty with pickles, onions, ketchup, and mustard. No cheese.",
+          "price": 1.69,
+          "customizations": {
+            "toppings": {
+              "options": ["Onions", "Pickles"],
+              "defaults": ["Onions", "Pickles"]
+            },
+            "sauces": {
+              "options": ["Ketchup", "Mustard", "None"],
+              "defaults": ["Ketchup", "Mustard"]
+            }
+          },
+          "allergens": ["Gluten"]
+        }
+      ]
     },
-    "menu": [
-      {
-        "category": "Burgers",
-        "items": [
-          {
-            "id": "burger001",
-            "name": "Big Mac",
-            "description": "Two 100% beef patties, special sauce, lettuce, cheese, pickles, onions on a sesame seed bun.",
-            "price": 5.99,
-            "customizations": {
-              "bun": {
-                "options": ["Regular", "Steamed", "No Bun"],
-                "required": false
-              },
-              "cheese": {
-                "options": ["American", "No Cheese"],
-                "required": false
-              },
-              "toppings": {
-                "options": [
-                  {"name": "Lettuce"},
-                  {"name": "Pickles"},
-                  {"name": "Onions"}
-                ],
-                "required": false
-              },
-              "sauces": {
-                "options": ["Special Sauce", "Ketchup", "Mustard", "None"],
-                "required": false
-              },
-              "extras": {
-                "options": [
-                  {"name": "Extra Patty", "price": 2.00},
-                  {"name": "Bacon", "price": 1.50}
-                ],
-                "required": false
-              }
+    {
+      "category": "Chicken & Fish Sandwiches",
+      "items": [
+        {
+          "id": "chicken001",
+          "name": "McCrispy",
+          "description": "Crispy chicken fillet with crinkle-cut pickles and a buttered potato roll.",
+          "price": 5.59,
+          "customizations": {
+            "bun": {
+              "options": ["Regular", "No Bun"],
+              "default": "Regular"
             },
-            "allergens": ["Gluten", "Dairy"]
-          },
-          {
-            "id": "burger002",
-            "name": "Quarter Pounder with Cheese",
-            "description": "Quarter pound 100% beef patty with cheese, onions, pickles, mustard, and ketchup on a sesame seed bun.",
-            "price": 5.49,
-            "customizations": {
-              "bun": {
-                "options": ["Regular", "Steamed", "No Bun"],
-                "required": false
-              },
-              "cheese": {
-                "options": ["American", "No Cheese"],
-                "required": false
-              },
-              "toppings": {
-                "options": [
-                  {"name": "Onions"},
-                  {"name": "Pickles"}
-                ],
-                "required": false
-              },
-              "sauces": {
-                "options": ["Ketchup", "Mustard", "None"],
-                "required": false
-              },
-              "extras": {
-                "options": [
-                  {"name": "Extra Patty", "price": 2.00},
-                  {"name": "Bacon", "price": 1.50}
-                ],
-                "required": false
-              }
+            "toppings": {
+             "options": ["Onions", "Pickles"],
+             "defaults": ["Pickles"]
             },
-            "allergens": ["Gluten", "Dairy"]
+            "sauces": {
+              "options": ["Mayo", "Spicy Sauce", "No Sauce"],
+              "defaults": ["Mayo"]
+            }
           },
-          {
-            "id": "burger003",
-            "name": "Double Quarter Pounder with Cheese",
-            "description": "Two quarter pound 100% beef patties with cheese, onions, pickles, mustard, and ketchup on a sesame seed bun.",
-            "price": 6.99,
-            "customizations": {
-              "bun": {
-                "options": ["Regular", "Steamed", "No Bun"],
-                "required": false
-              },
-              "cheese": {
-                "options": ["American", "No Cheese"],
-                "required": false
-              },
-              "toppings": {
-                "options": [
-                  {"name": "Onions"},
-                  {"name": "Pickles"}
-                ],
-                "required": false
-              },
-              "sauces": {
-                "options": ["Ketchup", "Mustard", "None"],
-                "required": false
-              },
-              "extras": {
-                "options": [
-                  {"name": "Bacon", "price": 1.50}
-                ],
-                "required": false
-              }
-            },
-            "allergens": ["Gluten", "Dairy"]
+          "allergens": ["Gluten", "Egg"]
+        }
+      ]
+    },
+    {
+      "category": "Sides",
+      "items": [
+        {
+          "id": "side001",
+          "name": "French Fries",
+          "description": "Crispy, golden fries made from premium potatoes.",
+          "price": 1.79,
+          "customizations": {
+            "size": {
+              "options": ["Small","Medium","Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "burger004",
-            "name": "Quarter Pounder with Cheese Deluxe",
-            "description": "Quarter pound 100% beef patty with cheese, lettuce, tomato, onions, pickles, mustard, and ketchup on a sesame seed bun.",
-            "price": 5.79,
-            "customizations": {
-              "bun": {
-                "options": ["Regular", "Steamed", "No Bun"],
-                "required": false
-              },
-              "cheese": {
-                "options": ["American", "No Cheese"],
-                "required": false
-              },
-              "toppings": {
-                "options": [
-                  {"name": "Lettuce"},
-                  {"name": "Tomato"},
-                  {"name": "Onions"},
-                  {"name": "Pickles"}
-                ],
-                "required": false
-              },
-              "sauces": {
-                "options": ["Ketchup", "Mustard", "None"],
-                "required": false
-              },
-              "extras": {
-                "options": [
-                  {"name": "Bacon", "price": 1.50}
-                ],
-                "required": false
-              }
-            },
-            "allergens": ["Gluten", "Dairy"]
+          "allergens": ["Gluten"]
+        },
+        {
+          "id": "side002",
+          "name": "Apple Slices",
+          "description": "Freshly sliced apple served in a convenient snack-sized container.",
+          "price": 1.29,
+          "allergens": []
+        },
+        {
+          "id": "side003",
+          "name": "Tangy Barbeque Sauce",
+          "description": "A smoky and sweet barbecue dipping sauce.",
+          "price": 0.49,
+          
+          "allergens": ["Soy"]
+        },
+        {
+          "id": "side004",
+          "name": "Spicy Buffalo Sauce",
+          "description": "A bold and spicy buffalo-style dipping sauce.",
+          "price": 0.49,
+          
+          "allergens": ["Milk"]
+        },
+        {
+          "id": "side005",
+          "name": "Creamy Ranch Sauce",
+          "description": "A creamy and tangy ranch-style dipping sauce.",
+          "price": 0.49,
+         
+          "allergens": ["Milk"]
+        },
+        {
+          "id": "side006",
+          "name": "Honey Mustard Sauce",
+          "description": "A sweet and tangy honey mustard dipping sauce.",
+          "price": 0.49,
+          "allergens": ["Egg", "Mustard"]
+        },
+        {
+          "id": "side007",
+          "name": "Honey",
+          "description": "A sweet honey dipping sauce.",
+          "price": 0.49,
+          "allergens": []
+        },
+        {
+          "id": "side008",
+          "name": "Sweet 'N Sour Sauce",
+          "description": "A tangy and sweet dipping sauce.",
+          "price": 0.49,
+          "allergens": ["Soy"]
+        },
+        {
+          "id": "side009",
+          "name": "Ketchup Packet",
+          "description": "A classic tomato ketchup dipping sauce.",
+          "price": 0.49,
+          "allergens": []
+        },
+        {
+          "id": "side010",
+          "name": "Mustard Packet",
+          "description": "A tangy mustard dipping sauce.",
+          "price": 0.49,
+          "allergens": ["Mustard"]
+        },
+        {
+          "id": "side011",
+          "name": "Mayonnaise Packet",
+          "description": "A creamy mayonnaise dipping sauce.",
+          "price": 0.49,
+          "allergens": ["Egg"]
+        }
+      ]
+    },
+    {
+      "category": "Drinks",
+      "items": [
+        {
+          "id": "drink001",
+          "name": "Coca-Cola",
+          "description": "Classic Coca-Cola soft drink.",
+          "price": 1.79,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "burger005",
-            "name": "Bacon Quarter Pounder with Cheese",
-            "description": "Quarter pound 100% beef patty with cheese, bacon, onions, pickles, mustard, and ketchup on a sesame seed bun.",
-            "price": 6.29,
-            "customizations": {
-              "bun": {
-                "options": ["Regular", "Steamed", "No Bun"],
-                "required": false
-              },
-              "cheese": {
-                "options": ["American", "No Cheese"],
-                "required": false
-              },
-              "toppings": {
-                "options": [
-                  {"name": "Onions"},
-                  {"name": "Pickles"}
-                ],
-                "required": false
-              },
-              "sauces": {
-                "options": ["Ketchup", "Mustard", "None"],
-                "required": false
-              },
-              "extras": {
-                "options": [
-                  {"name": "Extra Bacon", "price": 1.50}
-                ],
-                "required": false
-              }
-            },
-            "allergens": ["Gluten", "Dairy"]
+          "allergens": []
+        },
+        {
+          "id": "drink002",
+          "name": "Sprite",
+          "description": "Lemon-lime Sprite soft drink.",
+          "price": 1.79,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "burger007",
-            "name": "Double Cheeseburger",
-            "description": "Two 100% beef patties and two slices of cheese with pickles, onions, ketchup, and mustard on a bun.",
-            "price": 2.89,
-            "customizations": {
-              "toppings": {
-                "options": ["Onions","Pickles"],
-                "required": false
-              },
-              "sauces": {
-                "options": ["Ketchup", "Mustard", "None"],
-                "required": false
-              }
-            },
-            "allergens": ["Gluten", "Dairy"]
+          "allergens": []
+        },
+        {
+          "id": "drink003",
+          "name": "Dr Pepper",
+          "description": "Dr Pepper soft drink.",
+          "price": 1.79,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "burger008",
-            "name": "Cheeseburger",
-            "description": "100% beef patty with American cheese, pickles, onions, ketchup, and mustard.",
-            "price": 1.89,
-            "customizations": {
-              "toppings": {
-                "options": ["Onions","Pickles"],
-                "required": false
-              },
-              "sauces": {
-                "options": ["Ketchup", "Mustard", "None"],
-                "required": false
-              }
-            },
-            "allergens": ["Gluten", "Dairy"]
+          "allergens": []
+        },
+        {
+          "id": "drink004",
+          "name": "Fanta Orange",
+          "description": "Fanta Orange soft drink.",
+          "price": 1.79,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "burger009",
-            "name": "Hamburger",
-            "description": "100% beef patty with pickles, onions, ketchup, and mustard. No cheese.",
-            "price": 1.69,
-            "customizations": {
-              "toppings": {
-                "options": ["Onions","Pickles"],
-                "required": false
-              },
-              "sauces": {
-                "options": ["Ketchup", "Mustard", "None"],
-                "required": false
-              }
-            },
-            "allergens": ["Gluten"]
-          }
-        ]
-      },
-      {
-        "category": "Chicken & Fish Sandwiches",
-        "items": [
-          {
-            "id": "chicken001",
-            "name": "McCrispy",
-            "description": "Crispy chicken fillet with crinkle-cut pickles and a buttered potato roll.",
-            "price": 5.59,
-            "customizations": {
-              "bun": {
-                "options": ["Regular", "No Bun"],
-                "required": false
-              },
-              "toppings": {
-               "options": ["Onions","Pickles"],
-                "required": false
-              },
-              "sauces": {
-                "options": ["Mayo", "Spicy Sauce", "No Sauce"],
-                "required": true
-              }
-            },
-            "allergens": ["Gluten", "Egg"]
-          }
-        ]
-      },
-      {
-        "category": "Sides",
-        "items": [
-          {
-            "id": "side001",
-            "name": "French Fries",
-            "description": "Crispy, golden fries made from premium potatoes.",
-            "price": 1.79,
-            "customizations": {
-              "size": {
-                "options": ["Small","Medium","Large"],
-                "required": true
-              }
-            },
-            "allergens": ["Gluten"]
+          "allergens": []
+        },
+        {
+          "id": "drink005",
+          "name": "Diet Coke",
+          "description": "Diet Coke soft drink.",
+          "price": 1.79,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side002",
-            "name": "Apple Slices",
-            "description": "Freshly sliced apple served in a convenient snack-sized container.",
-            "price": 1.29,
-            "allergens": []
+          "allergens": []
+        },
+        {
+          "id": "drink006",
+          "name": "Hi-C Orange Lavaburst",
+          "description": "Hi-C Orange Lavaburst drink.",
+          "price": 1.79,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side003",
-            "name": "Tangy Barbeque Sauce",
-            "description": "A smoky and sweet barbecue dipping sauce.",
-            "price": 0.49,
-            
-            "allergens": ["Soy"]
+          "allergens": []
+        },
+        {
+          "id": "drink007",
+          "name": "Frozen Fanta Blue Raspberry",
+          "description": "Frozen Fanta Blue Raspberry drink.",
+          "price": 2.19,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side004",
-            "name": "Spicy Buffalo Sauce",
-            "description": "A bold and spicy buffalo-style dipping sauce.",
-            "price": 0.49,
-            
-            "allergens": ["Milk"]
+          "allergens": []
+        },
+        {
+          "id": "drink008",
+          "name": "Frozen Coca-Cola Classic",
+          "description": "Frozen Coca-Cola Classic drink.",
+          "price": 2.19,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side005",
-            "name": "Creamy Ranch Sauce",
-            "description": "A creamy and tangy ranch-style dipping sauce.",
-            "price": 0.49,
-           
-            "allergens": ["Milk"]
+          "allergens": []
+        },
+        {
+          "id": "drink009",
+          "name": "Strawberry Banana Smoothie",
+          "description": "Strawberry Banana Smoothie.",
+          "price": 2.49,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side006",
-            "name": "Honey Mustard Sauce",
-            "description": "A sweet and tangy honey mustard dipping sauce.",
-            "price": 0.49,
-            "allergens": ["Egg", "Mustard"]
+          "allergens": ["Milk"]
+        },
+        {
+          "id": "drink010",
+          "name": "Mango Pineapple Smoothie",
+          "description": "Mango Pineapple Smoothie.",
+          "price": 2.49,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side007",
-            "name": "Honey",
-            "description": "A sweet honey dipping sauce.",
-            "price": 0.49,
-            "allergens": []
+          "allergens": ["Milk"]
+        },
+        {
+          "id": "drink011",
+          "name": "Lemonade",
+          "description": "Lemonade beverage.",
+          "price": 1.79,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side008",
-            "name": "Sweet 'N Sour Sauce",
-            "description": "A tangy and sweet dipping sauce.",
-            "price": 0.49,
-            "allergens": ["Soy"]
+          "allergens": []
+        },
+        {
+          "id": "drink012",
+          "name": "Sweet Tea",
+          "description": "Sweetened iced tea.",
+          "price": 1.39,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side009",
-            "name": "Ketchup Packet",
-            "description": "A classic tomato ketchup dipping sauce.",
-            "price": 0.49,
-            "allergens": []
+          "allergens": []
+        },
+        {
+          "id": "drink013",
+          "name": "Unsweetened Iced Tea",
+          "description": "Unsweetened iced tea.",
+          "price": 1.39,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side010",
-            "name": "Mustard Packet",
-            "description": "A tangy mustard dipping sauce.",
-            "price": 0.49,
-            "allergens": ["Mustard"]
+          "allergens": []
+        },
+        {
+          "id": "drink014",
+          "name": "Hot Tea",
+          "description": "Hot tea beverage.",
+          "price": 1.39,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "side011",
-            "name": "Mayonnaise Packet",
-            "description": "A creamy mayonnaise dipping sauce.",
-            "price": 0.49,
-            "allergens": ["Egg"]
-          }
-        ]
-      },
-      {
-        "category": "Drinks",
-        "items": [
-          {
-            "id": "drink001",
-            "name": "Coca-Cola",
-            "description": "Classic Coca-Cola soft drink.",
-            "price": 1.79,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
+          "allergens": []
+        },
+        {
+          "id": "drink015",
+          "name": "Minute Maid Premium Orange Juice",
+          "description": "Minute Maid Premium Orange Juice.",
+          "price": 1.99,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "drink002",
-            "name": "Sprite",
-            "description": "Lemon-lime Sprite soft drink.",
-            "price": 1.79,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
+          "allergens": []
+        },
+        {
+          "id": "drink016",
+          "name": "Honest Kids Appley Ever After Organic Juice Drink",
+          "description": "Honest Kids Appley Ever After Organic Juice Drink box.",
+          "price": 1.29,
+          "customizations": {
+            "size": {
+              "options": ["One Size"],
+              "default": "One Size"
+            }
           },
-          {
-            "id": "drink003",
-            "name": "Dr Pepper",
-            "description": "Dr Pepper soft drink.",
-            "price": 1.79,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
+          "allergens": []
+        },
+        {
+          "id": "drink017",
+          "name": "1% Low Fat Milk Jug",
+          "description": "1% Low Fat Milk Jug.",
+          "price": 1.29,
+          "customizations": {
+            "size": {
+              "options": ["One Size"],
+              "default": "One Size"
+            }
           },
-          {
-            "id": "drink004",
-            "name": "Fanta Orange",
-            "description": "Fanta Orange soft drink.",
-            "price": 1.79,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
+          "allergens": ["Milk"]
+        },
+        {
+          "id": "drink018",
+          "name": "Reduced Sugar Low Fat Chocolate Milk Jug",
+          "description": "Reduced Sugar Low Fat Chocolate Milk Jug.",
+          "price": 1.29,
+          "customizations": {
+            "size": {
+              "options": ["One Size"],
+              "default": "One Size"
+            }
           },
-          {
-            "id": "drink005",
-            "name": "Diet Coke",
-            "description": "Diet Coke soft drink.",
-            "price": 1.79,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
+          "allergens": ["Milk"]
+        },
+        {
+          "id": "drink019",
+          "name": "Hot Chocolate",
+          "description": "Hot Chocolate beverage.",
+          "price": 2.09,
+          "customizations": {
+            "size": {
+              "options": ["Small", "Medium", "Large"],
+              "default": "Medium"
+            }
           },
-          {
-            "id": "drink006",
-            "name": "Hi-C Orange Lavaburst",
-            "description": "Hi-C Orange Lavaburst drink.",
-            "price": 1.79,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
+          "allergens": ["Milk"]
+        },
+        {
+          "id": "drink020",
+          "name": "DASANI Water",
+          "description": "Bottled water.",
+          "price": 1.29,
+          "customizations": {
+            "size": {
+              "options": ["One Size"],
+              "default": "One Size"
+            }
           },
-          {
-            "id": "drink007",
-            "name": "Frozen Fanta Blue Raspberry",
-            "description": "Frozen Fanta Blue Raspberry drink.",
-            "price": 2.19,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
-          },
-          {
-            "id": "drink008",
-            "name": "Frozen Coca-Cola Classic",
-            "description": "Frozen Coca-Cola Classic drink.",
-            "price": 2.19,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
-          },
-          {
-            "id": "drink009",
-            "name": "Strawberry Banana Smoothie",
-            "description": "Strawberry Banana Smoothie.",
-            "price": 2.49,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": ["Milk"]
-          },
-          {
-            "id": "drink010",
-            "name": "Mango Pineapple Smoothie",
-            "description": "Mango Pineapple Smoothie.",
-            "price": 2.49,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": ["Milk"]
-          },
-          {
-            "id": "drink011",
-            "name": "Lemonade",
-            "description": "Lemonade beverage.",
-            "price": 1.79,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
-          },
-          {
-            "id": "drink012",
-            "name": "Sweet Tea",
-            "description": "Sweetened iced tea.",
-            "price": 1.39,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
-          },
-          {
-            "id": "drink013",
-            "name": "Unsweetened Iced Tea",
-            "description": "Unsweetened iced tea.",
-            "price": 1.39,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
-          },
-          {
-            "id": "drink014",
-            "name": "Hot Tea",
-            "description": "Hot tea beverage.",
-            "price": 1.39,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": []
-          },
-          {
-            "id": "drink015",
-            "name": "Minute Maid Premium Orange Juice",
-            "description": "Minute Maid Premium Orange Juice.",
-            "price": 1.99,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium"],
-                "required": true
-              }
-            },
-            "allergens": []
-          },
-          {
-            "id": "drink016",
-            "name": "Honest Kids Appley Ever After Organic Juice Drink",
-            "description": "Honest Kids Appley Ever After Organic Juice Drink box.",
-            "price": 1.29,
-            "customizations": {
-              "size": {
-                "options": ["One Size"],
-                "required": true
-              }
-            },
-            "allergens": []
-          },
-          {
-            "id": "drink017",
-            "name": "1% Low Fat Milk Jug",
-            "description": "1% Low Fat Milk Jug.",
-            "price": 1.29,
-            "customizations": {
-              "size": {
-                "options": ["One Size"],
-                "required": true
-              }
-            },
-            "allergens": ["Milk"]
-          },
-          {
-            "id": "drink018",
-            "name": "Reduced Sugar Low Fat Chocolate Milk Jug",
-            "description": "Reduced Sugar Low Fat Chocolate Milk Jug.",
-            "price": 1.29,
-            "customizations": {
-              "size": {
-                "options": ["One Size"],
-                "required": true
-              }
-            },
-            "allergens": ["Milk"]
-          },
-          {
-            "id": "drink019",
-            "name": "Hot Chocolate",
-            "description": "Hot Chocolate beverage.",
-            "price": 2.09,
-            "customizations": {
-              "size": {
-                "options": ["Small", "Medium", "Large"],
-                "required": true
-              }
-            },
-            "allergens": ["Milk"]
-          },
-          {
-            "id": "drink020",
-            "name": "DASANI Water",
-            "description": "Bottled water.",
-            "price": 1.29,
-            "customizations": {
-              "size": {
-                "options": ["One Size"],
-                "required": true
-              }
-            },
-            "allergens": []
-          }
-        ]
-      }
-    ]
-  }
+          "allergens": []
+        }
+      ]
+    }
+  ]
 }

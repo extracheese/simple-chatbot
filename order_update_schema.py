@@ -23,7 +23,7 @@ order_update_schema = {
                         },
                         "clarification_needed": {"type": "string"}
                     },
-                    "required": ["id", "name", "price", "status"]
+                    "required": ["id", "status"]
                 }
             },
             "message": {"type": "string"}
