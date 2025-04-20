@@ -20,6 +20,27 @@ class MenuItem:
     variants: List[str] = None
     allergens: List[str] = None
 
+    def get_price_for_size(self, size: Optional[str] = None) -> float:
+        """Get the price for a specific size, or default price if no size specified"""
+        if not size or not self.customization_options or 'size' not in self.customization_options:
+            return self.price
+            
+        # Get size options
+        size_options = self.customization_options['size']
+        default_size = size_options.get('default', 'Medium')
+        
+        # Size-based pricing
+        if self.category == 'Drinks':
+            size_prices = {
+                'Small': self.price - 0.40,  # Small is $0.40 less than medium
+                'Medium': self.price,        # Medium is base price
+                'Large': self.price + 0.40,  # Large is $0.40 more than medium
+                'One Size': self.price       # One size items use base price
+            }
+            return size_prices.get(size, self.price)
+            
+        return self.price
+
     def get_default_customizations(self) -> Dict[str, Any]:
         """Get the default customizations for this item"""
         if not self.customization_options:
@@ -204,6 +225,9 @@ class MenuProcessor:
                     return False, "This item doesn't support customization"
                 return True, None
             
+            # Track counts for each customization type
+            customization_counts = {}
+            
             for option_type, value in customizations.items():
                 if option_type not in item.customization_options:
                     return False, f"Invalid customization type: {option_type}"
@@ -218,6 +242,11 @@ class MenuProcessor:
                     option_value = option['name'] if isinstance(option, dict) else option
                     if value == option_value:
                         valid_value = True
+                        # Track count for this type of customization
+                        customization_counts[option_type] = customization_counts.get(option_type, 0) + 1
+                        # Don't allow more than 3 customizations of the same type
+                        if customization_counts[option_type] > 3:
+                            return False, f"Too many {option_type} customizations (max 3)"
                         break
                 
                 if not valid_value:

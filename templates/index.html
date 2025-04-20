@@ -7,13 +7,25 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .chat-container {
-            height: calc(100vh - 180px);
+            height: calc(100vh - 24rem);
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+            cursor: auto;
         }
         .message {
             max-width: 80%;
             margin: 8px;
             padding: 12px;
             border-radius: 15px;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+            cursor: text;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
         .user-message {
             background-color: #e2e8f0;
@@ -34,23 +46,55 @@
             background-color: #fff;
             border-left: 1px solid #e5e7eb;
             height: 100vh;
-            position: fixed;
-            right: 0;
-            top: 0;
-            width: 300px;
-            z-index: 50;
+            padding: 1.5rem;
             overflow-y: auto;
         }
         .needs-clarification {
             border: 1px dashed #fbbf24;
             background-color: #fef3c7 !important;
         }
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-height: 100vh;
+        }
+        .chat-section {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+        @media (max-height: 700px) {
+            .topic-cards {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+            .chat-container {
+                height: calc(100vh - 20rem);
+            }
+        }
+        @media (max-height: 600px) {
+            .welcome-section {
+                margin-bottom: 1rem !important;
+            }
+            .topic-cards {
+                margin-bottom: 1rem !important;
+            }
+            .chat-container {
+                height: calc(100vh - 16rem);
+            }
+        }
         .thinking-cue {
             display: flex;
             align-items: center;
             color: #888;
             font-style: italic;
-            margin: 10px 0 10px 0;
+            margin: 10px 0;
             font-size: 1rem;
         }
         .thinking-cue .dot {
@@ -75,74 +119,81 @@
     </style>
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8 pr-[324px]">
-        <!-- Model Selector -->
-        <div class="absolute top-4 right-4">
-            <select id="model-selector" 
-                    class="bg-white border border-red-600 text-gray-900 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 p-2.5">
-                <option value="gpt-4">Azure GPT-4</option>
-                <option value="gemini-2.5">Gemini 2.5</option>
-            </select>
-        </div>
-        
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-red-600 mb-2">McDonald's Drive-Thru AI</h1>
-            <p class="text-gray-600">Welcome! How can I help you with your order today?</p>
-        </div>
+    <div class="flex h-screen overflow-hidden">
+        <!-- Main Content (Left Side) -->
+        <div class="flex-1 main-content">
+            <div class="p-4 lg:p-8">
+                <!-- Model Selector -->
+                <div class="absolute top-4 right-4 z-10">
+                    <select id="model-selector" 
+                            class="bg-white border border-red-600 text-gray-900 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 p-2.5">
+                        <option value="gpt-4">Azure GPT-4</option>
+                        <option value="gemini-2.5">Gemini 2.5</option>
+                    </select>
+                </div>
+                
+                <div class="welcome-section text-center mb-6">
+                    <h1 class="text-3xl lg:text-4xl font-bold text-red-600 mb-2">McDonald's Drive-Thru AI</h1>
+                    <p class="text-gray-600">Welcome! How can I help you with your order today?</p>
+                </div>
 
-        <!-- Quick Order Topics -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="topic-card bg-white p-4 rounded-lg shadow-md text-center" onclick="sendMessage('Show me the burger menu')">
-                <h3 class="font-bold text-lg mb-2">🍔 Burgers</h3>
-                <p class="text-sm text-gray-600">View our delicious burger selection</p>
-            </div>
-            <div class="topic-card bg-white p-4 rounded-lg shadow-md text-center" onclick="sendMessage('What chicken sandwiches do you have?')">
-                <h3 class="font-bold text-lg mb-2">🍗 Chicken</h3>
-                <p class="text-sm text-gray-600">Check out our chicken options</p>
-            </div>
-            <div class="topic-card bg-white p-4 rounded-lg shadow-md text-center" onclick="sendMessage('Show me the sides menu')">
-                <h3 class="font-bold text-lg mb-2">🍟 Sides</h3>
-                <p class="text-sm text-gray-600">Browse our tasty sides</p>
-            </div>
-        </div>
-
-        <!-- Chat Interface -->
-        <div class="bg-white rounded-lg shadow-md">
-            <div id="chat-container" class="chat-container overflow-y-auto p-4">
-                <div class="message bot-message">
-                    Hi! Welcome to McDonald's! What can I get for you today? 🍔
+                <!-- Quick Order Topics -->
+                <div class="topic-cards grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4 mb-6">
+                    <div class="topic-card bg-white p-3 lg:p-4 rounded-lg shadow-md text-center" onclick="sendMessage('Show me the burger menu')">
+                        <h3 class="font-bold text-lg mb-1 lg:mb-2">🍔 Burgers</h3>
+                        <p class="text-sm text-gray-600">View our delicious burger selection</p>
+                    </div>
+                    <div class="topic-card bg-white p-3 lg:p-4 rounded-lg shadow-md text-center" onclick="sendMessage('Show me the drinks menu')">
+                        <h3 class="font-bold text-lg mb-1 lg:mb-2">🥤 Drinks</h3>
+                        <p class="text-sm text-gray-600">Check out our refreshing beverages</p>
+                    </div>
+                    <div class="topic-card bg-white p-3 lg:p-4 rounded-lg shadow-md text-center" onclick="sendMessage('Show me the sides menu')">
+                        <h3 class="font-bold text-lg mb-1 lg:mb-2">🍟 Sides</h3>
+                        <p class="text-sm text-gray-600">Browse our tasty sides</p>
+                    </div>
                 </div>
             </div>
-            
-            <div class="border-t p-4">
-                <div class="flex space-x-4">
-                    <input type="text" id="message-input" 
-                           class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" 
-                           placeholder="Type your order here..."
-                           onkeypress="handleKeyPress(event)">
-                    <button onclick="sendMessage()" 
-                            id="send-button"
-                            disabled
-                            class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Send
-                    </button>
+
+            <!-- Chat Interface -->
+            <div class="chat-section px-4 lg:px-8 pb-4 lg:pb-8">
+                <div class="bg-white rounded-lg shadow-md flex flex-col h-full">
+                    <div id="chat-container" class="chat-messages p-4">
+                        <div class="message bot-message">
+                            Hi! Welcome to McDonald's. What can I get for you today?
+                        </div>
+                    </div>
+                    <div class="border-t p-3 lg:p-4 mt-auto">
+                        <div class="flex space-x-4">
+                            <input type="text" id="message-input"
+                                class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                placeholder="Type your message here..."
+                                onkeypress="handleKeyPress(event)">
+                            <button id="send-button"
+                                class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+                                onclick="sendMessage()" disabled>
+                                Send
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Order Panel -->
-    <div class="order-panel p-4">
-        <h2 class="text-xl font-bold mb-4 text-red-600">Your Order</h2>
-        <div id="order-items" class="space-y-4 mb-4">
-            <!-- Order items will be inserted here -->
-        </div>
-        <div class="border-t pt-4">
-            <div class="flex justify-between items-center font-bold">
-                <span>Total:</span>
-                <span id="order-total">$0.00</span>
+        <!-- Order Panel (Right Side) -->
+        <div class="w-80 lg:w-96 bg-white shadow-lg flex-shrink-0">
+            <div class="order-panel">
+                <h2 class="text-xl font-bold mb-4 text-red-600">Your Order</h2>
+                <div id="order-items" class="space-y-4 mb-4">
+                    <!-- Order items will be inserted here -->
+                </div>
+                <div class="border-t pt-4">
+                    <div class="flex justify-between font-bold text-lg">
+                        <span>Total:</span>
+                        <span id="order-total">$0.00</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">* Items needing clarification are not included in total</p>
+                </div>
             </div>
-            <p class="text-sm text-gray-500 mt-2">* Items needing clarification are not included in total</p>
         </div>
     </div>
 
@@ -175,92 +226,56 @@
             const orderItems = document.getElementById('order-items');
             const orderTotal = document.getElementById('order-total');
             
-            // Clear current items
+            // Clear existing items
             orderItems.innerHTML = '';
             
-            // Add each item
-            if (orderData.items && orderData.items.length > 0) {
-                orderData.items.forEach((item, index) => {
-                    // Get menu item details
-                    fetch(`/menu_item/${item.id}`)
-                        .then(response => response.json())
-                        .then(menuItem => {
-                            const itemCard = document.createElement('div');
-                            itemCard.className = `bg-white rounded-lg shadow p-4 mb-4 ${item.status !== 'confirmed' ? 'needs-clarification' : ''}`;
-                            
-                            // Create the header with item name and remove button
-                            const header = document.createElement('div');
-                            header.className = 'flex justify-between items-start mb-2';
-                            
-                            const namePrice = document.createElement('div');
-                            namePrice.className = 'flex-grow';
-                            namePrice.innerHTML = `
-                                <div class="flex justify-between items-baseline">
-                                    <h3 class="font-bold">${menuItem.name}</h3>
-                                    <div class="text-sm text-gray-600">
-                                        ${item.quantity > 1 ? `${item.quantity}x ` : ''}$${item.price.toFixed(2)}
-                                    </div>
-                                </div>
-                                <div class="text-gray-600 text-sm">
-                                    ${item.quantity > 1 ? `Subtotal: $${(item.price * item.quantity).toFixed(2)}` : ''}
-                                </div>
-                            `;
-                            
-                            const removeBtn = document.createElement('button');
-                            removeBtn.className = 'text-red-500 hover:text-red-700 ml-2';
-                            removeBtn.innerHTML = '×';
-                            removeBtn.onclick = () => removeItem(index);
-                            
-                            header.appendChild(namePrice);
-                            header.appendChild(removeBtn);
-                            itemCard.appendChild(header);
-                            
-                            // Add customizations if any
-                            if (item.customizations && Object.keys(item.customizations).length > 0) {
-                                const customList = document.createElement('div');
-                                customList.className = 'mt-2 text-sm';
-                                
-                                Object.entries(item.customizations).forEach(([key, value]) => {
-                                    const customItem = document.createElement('div');
-                                    customItem.className = 'flex items-center text-gray-600 mb-1';
-                                    customItem.innerHTML = `
-                                        <span class="capitalize">${key}:</span>
-                                        <span class="ml-1 font-medium">${value}</span>
-                                    `;
-                                    customList.appendChild(customItem);
-                                });
-                                
-                                itemCard.appendChild(customList);
-                            }
-                            
-                            // Add clarification needed message if applicable
-                            if (item.status !== 'confirmed') {
-                                const clarificationMsg = document.createElement('div');
-                                clarificationMsg.className = 'mt-2 text-sm text-yellow-600';
-                                clarificationMsg.innerHTML = `
-                                    <span class="inline-block mr-1">⚠️</span>
-                                    Needs ${item.clarification_needed}
-                                `;
-                                itemCard.appendChild(clarificationMsg);
-                            }
-                            
-                            orderItems.appendChild(itemCard);
-                        });
-                });
-            } else {
-                // Show empty state
-                orderItems.innerHTML = `
-                    <div class="text-center text-gray-500 py-4">
-                        Your order is empty
-                    </div>
-                `;
+            if (!orderData || !orderData.items || orderData.items.length === 0) {
+                orderItems.innerHTML = '<p class="text-gray-500">No items in order</p>';
+                orderTotal.textContent = '$0.00';
+                return;
             }
             
+            // Add each item
+            orderData.items.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `bg-gray-50 p-3 rounded-lg ${item.status === 'needs_customization' ? 'needs-clarification' : ''}`;
+                
+                let itemHtml = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium">${item.name}</h3>
+                            ${item.status === 'needs_customization' ? 
+                                `<p class="text-yellow-600 text-sm">Needs clarification: ${item.clarification_needed}</p>` : ''}
+                        </div>
+                        <button onclick="removeItem(${index})" class="text-red-500 hover:text-red-700">×</button>
+                    </div>
+                `;
+                
+                // Add customizations if any
+                if (item.customizations && Object.keys(item.customizations).length > 0) {
+                    itemHtml += '<div class="text-sm text-gray-600 mt-1">';
+                    for (const [key, value] of Object.entries(item.customizations)) {
+                        if (Array.isArray(value)) {
+                            itemHtml += `<div>${key}: ${value.join(', ')}</div>`;
+                        } else {
+                            itemHtml += `<div>${key}: ${value}</div>`;
+                        }
+                    }
+                    itemHtml += '</div>';
+                }
+                
+                // Add price if item is confirmed
+                if (item.status === 'confirmed' && item.price) {
+                    itemHtml += `<div class="text-right text-sm font-medium mt-2">$${item.price.toFixed(2)}</div>`;
+                }
+                
+                itemDiv.innerHTML = itemHtml;
+                orderItems.appendChild(itemDiv);
+            });
+            
             // Update total
-            if (typeof orderData.total === 'number') {
+            if (orderData.total !== undefined) {
                 orderTotal.textContent = `$${orderData.total.toFixed(2)}`;
-            } else {
-                console.error('Invalid total:', orderData.total);
             }
         }
 
@@ -344,7 +359,23 @@
         function appendMessage(content, role) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}-message`;
-            messageDiv.textContent = content;
+            
+            // Create a paragraph element for the message content
+            const messageText = document.createElement('p');
+            messageText.style.margin = '0';
+            messageText.style.userSelect = 'text';
+            messageText.style.cursor = 'text';
+            
+            // Escape HTML and preserve line breaks
+            messageText.innerHTML = content
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;')
+                .replace(/\n/g, '<br>');
+            
+            messageDiv.appendChild(messageText);
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }

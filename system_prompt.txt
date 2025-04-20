@@ -16,7 +16,6 @@ EXAMPLES
     "items": [
       {
         "id": "burger008",
-        "price": 1.89,
         "status": "confirmed",
         "clarification_needed": null
       }
@@ -32,7 +31,6 @@ EXAMPLES
     "items": [
       {
         "id": "drink002",
-        "price": 1.79,
         "status": "needs_customization",
         "clarification_needed": "size",
         "customizations": {}
@@ -48,7 +46,6 @@ EXAMPLES
     "items": [
       {
         "id": "drink002",
-        "price": 1.79,
         "status": "confirmed",
         "clarification_needed": null,
         "customizations": {
@@ -89,7 +86,6 @@ RESPONSE FORMATTING
     "items": [
         {
             "id": "item_id",  // Required: Get this from the menu data
-            "price": 1.99,    // Required: Get this from the menu data
             "status": "confirmed" | "needs_customization",  // Required
             "clarification_needed": "size" | null,  // Required
             "customizations": {  // Optional: Include when customizations are specified

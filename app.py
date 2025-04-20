@@ -33,151 +33,92 @@ class ItemStatus(Enum):
 
 @dataclass
 class OrderItem:
-    id: str
+    item_id: str
     name: str
-    price: float
-    quantity: int = 1
-    customizations: Dict[str, str] = None
     status: ItemStatus = ItemStatus.CONFIRMED
     clarification_needed: Optional[str] = None
-    
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "price": self.price,
-            "quantity": self.quantity,
-            "customizations": self.customizations or {},
-            "status": self.status.value,
-            "clarification_needed": self.clarification_needed
-        }
+    customizations: Dict[str, str] = field(default_factory=dict)
+    quantity: int = 1
 
-@dataclass
+    def get_price(self) -> float:
+        """Get the current price for this item based on menu and customizations"""
+        menu_item = processor.get_menu_item(self.item_id)
+        if not menu_item:
+            return 0.0
+        size = self.customizations.get('size')
+        return menu_item.get_price_for_size(size)
+
 class Order:
-    items: List[OrderItem] = field(default_factory=list)
-    total: float = 0
-    current_clarification_index: int = 0
+    def __init__(self):
+        self.items: List[OrderItem] = []
 
-    def add_item(self, item_id: str, name: str, price: float, status: ItemStatus = ItemStatus.CONFIRMED, 
+    def add_item(self, item_id: str, name: str = None, status: ItemStatus = ItemStatus.CONFIRMED, 
                  clarification_needed: str = None, customizations: Dict[str, str] = None):
-        # VALIDATE: Ensure item exists in menu
+        """Add an item to the order"""
         menu_item = processor.get_menu_item(item_id)
         if not menu_item:
-            raise ValueError(f"Item with id '{item_id}' does not exist in the menu.")
-        # VALIDATE: Ensure name and price match the menu
-        if name != menu_item.name:
-            raise ValueError(f"Name mismatch for item id '{item_id}': got '{name}', expected '{menu_item.name}'")
-        if float(price) != float(menu_item.price):
-            raise ValueError(f"Price mismatch for item id '{item_id}': got '{price}', expected '{menu_item.price}'")
+            raise ValueError(f"Item with id '{item_id}' does not exist")
 
-        # Start with defaults
-        final_customizations = menu_item.get_default_customizations()
-        
-        # Override with user-specified customizations
-        if customizations:
-            final_customizations.update(customizations)
-        
-        # Check if any customization options are missing and need clarification
-        if menu_item.customization_options:
-            for option_type, options_data in menu_item.customization_options.items():
-                if option_type not in final_customizations:
-                    # If this option has no default, we need clarification
-                    if "default" not in options_data and "defaults" not in options_data:
-                        status = ItemStatus.NEEDS_CUSTOMIZATION
-                        clarification_needed = f"Please choose a {option_type} option: {', '.join(str(opt) for opt in options_data['options'])}"
-                        break
-        
-        # Convert string status to enum if needed
-        if isinstance(status, str):
-            status = ItemStatus(status)
-        
-        new_item = OrderItem(
-            id=item_id, 
-            name=name, 
-            price=price, 
-            customizations=final_customizations,
+        # Create order item
+        order_item = OrderItem(
+            item_id=item_id,
+            name=name or menu_item.name,
             status=status,
-            clarification_needed=clarification_needed
+            clarification_needed=clarification_needed,
+            customizations=customizations or {}
         )
-        self.items.append(new_item)
-        self.calculate_total()
-        return new_item
+        self.items.append(order_item)
+        return order_item
 
     def remove_item(self, index: int):
         if 0 <= index < len(self.items):
             self.items.pop(index)
-            self.calculate_total()
-            return True
-        return False
 
-    def update_item_status(self, item_id: str, status: ItemStatus, price: Optional[float] = None):
-        """Update the status of an item"""
-        for item in self.items:
-            if item.id == item_id:
-                if price is not None:
-                    item.price = price
-                item.status = status
-                self.calculate_total()
-                return True
-        return False
-
-    def get_next_clarification(self) -> Optional[tuple[int, OrderItem]]:
-        """Get the next item that needs clarification"""
-        for i, item in enumerate(self.items[self.current_clarification_index:], self.current_clarification_index):
-            if item.status != ItemStatus.CONFIRMED:
-                return i, item
-        return None
-
-    def update_next_clarification(self, price: float, customizations: Dict[str, str] = None):
-        """
-        Update the next item that needs clarification with the provided details.
-        Sets status to CONFIRMED and updates price/customizations.
-        """
-        next_clar = self.get_next_clarification()
-        if next_clar:
-            idx, item = next_clar
-            if item.status != ItemStatus.CONFIRMED:
-                item.price = price
-                item.customizations = customizations or {}
-                item.status = ItemStatus.CONFIRMED
-                item.clarification_needed = None
-                self.calculate_total()
-                return True
-        return False
-
-    def update_item_customizations(self, item_id: str, customizations: Dict[str, str], price: float = None):
-        # VALIDATE: Ensure item exists in menu
+    def update_item_customizations(self, item_id: str, customizations: Dict[str, str], index: Optional[int] = None):
+        """Update customizations for an item"""
         menu_item = processor.get_menu_item(item_id)
         if not menu_item:
-            raise ValueError(f"Item with id '{item_id}' does not exist in the menu.")
-        # VALIDATE: Ensure price matches menu if provided
-        if price is not None and float(price) != float(menu_item.price):
-            raise ValueError(f"Price mismatch for item id '{item_id}': got '{price}', expected '{menu_item.price}'")
+            raise ValueError(f"Item with id '{item_id}' does not exist")
+
+        # Find the item to update
+        if index is not None and 0 <= index < len(self.items):
+            item = self.items[index]
+            if item.item_id != item_id:
+                raise ValueError(f"Item at index {index} has id '{item.item_id}', expected '{item_id}'")
+        else:
+            # Find the first item with matching id
+            item = next((item for item in self.items if item.item_id == item_id), None)
+            if not item:
+                return False
+
+        # Update customizations
+        item.customizations.update(customizations)
+        return True
+
+    def get_total(self) -> float:
+        """Calculate the total price of the order based on menu prices"""
+        total = 0.0
         for item in self.items:
-            if item.id == item_id:
-                item.customizations = customizations
-                if price is not None:
-                    # Adjust total if price changes
-                    item.price = price
-                    if item.status == ItemStatus.CONFIRMED:
-                        self.calculate_total()
-                    
-                item.status = ItemStatus.CONFIRMED
-                item.clarification_needed = None
-                
-                return True
-        return False
+            if item.status == ItemStatus.CONFIRMED:
+                total += item.get_price() * item.quantity
+        return round(total, 2)
 
-    def calculate_total(self):
-        """Calculate the total price of all confirmed items"""
-        self.total = sum(item.price * item.quantity for item in self.items if item.status == ItemStatus.CONFIRMED)
-
-    def to_dict(self):
-        return {
-            "items": [item.to_dict() for item in self.items],
-            "total": round(self.total, 2),
-            "current_clarification_index": self.current_clarification_index
-        }
+    def get_items(self) -> List[Dict]:
+        """Get all items in the order with their current prices"""
+        items = []
+        for item in self.items:
+            # Convert status to string if it's an enum
+            status = item.status.value if isinstance(item.status, ItemStatus) else item.status
+            items.append({
+                'id': item.item_id,
+                'name': item.name,
+                'status': status,
+                'clarification_needed': item.clarification_needed,
+                'customizations': item.customizations,
+                'quantity': item.quantity,
+                'price': item.get_price()
+            })
+        return items
 
 app = Flask(__name__)
 load_dotenv()
@@ -233,139 +174,187 @@ def generate_response(message, session_id, model="gpt-4"):
             ai_response = response.text
         else:
             # Use Azure OpenAI
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+            
+            # Add chat memory messages
+            if memory and memory.chat_memory and memory.chat_memory.messages:
+                for msg in memory.chat_memory.messages:
+                    messages.append({
+                        "role": "user" if msg.type == "human" else "assistant",
+                        "content": msg.content
+                    })
+            
+            # Add current message
+            messages.append({"role": "user", "content": message})
+            
+            # Get completion
             response = azure_client.chat.completions.create(
                 model=model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    *memory.chat_memory.messages,
-                    {"role": "user", "content": message}
-                ],
+                messages=messages,
                 temperature=0.7,
                 max_tokens=800
             )
             ai_response = response.choices[0].message.function_call.arguments if response.choices[0].message.function_call else response.choices[0].message.content
-        
-        print(f"AI Response: {ai_response}")
-        
-        try:
-            response_data = json.loads(ai_response)
-        except json.JSONDecodeError:
-            return ai_response
             
-        print(f"Parsed JSON: {json.dumps(response_data, indent=2)}")
-        
-        if isinstance(response_data, dict) and response_data.get("type") == "order_update":
-            # Backend guardrail: correct any LLM mistakes about non-required clarifications
-            for item_data in response_data.get("items", []):
-                item_id = item_data.get("id")
-                clarification_needed = item_data.get("clarification_needed")
-                menu_item = processor.get_menu_item(item_id)
-                # If clarification_needed is set for a non-required customization, override to confirmed
-                if (
-                    clarification_needed
-                    and menu_item
-                    and hasattr(menu_item, "customization_options")
-                    and clarification_needed in menu_item.customization_options
-                ):
-                    cust_option = menu_item.customization_options[clarification_needed]
-                    # cust_option can be a dict or list; handle both
-                    if isinstance(cust_option, dict):
-                        required = cust_option.get("required", False)
-                    elif isinstance(cust_option, list):
-                        # If list, not required
-                        required = False
-                    else:
-                        required = False
-                    if not required:
-                        item_data["status"] = "confirmed"
-                        item_data["clarification_needed"] = None
-            # Process order updates
-            for item_data in response_data.get("items", []):
-                item_id = item_data.get("id")
-                price = float(item_data.get("price", 0))
-                customizations = item_data.get("customizations", {})
-                status = item_data.get("status", "confirmed")
-                clarification_needed = item_data.get("clarification_needed")
+            # Debug logging
+            chat_logger.debug(f"Raw AI response: {ai_response}")
+            
+            try:
+                response_data = json.loads(ai_response)
+                chat_logger.debug(f"Parsed response data: {json.dumps(response_data, indent=2)}")
+                
+                # Validate response against schema
+                if not isinstance(response_data, dict):
+                    chat_logger.error(f"Response is not a dictionary: {response_data}")
+                    return "I apologize, but I couldn't process your order correctly. Could you please try again?"
+                
+                if response_data.get("type") != "order_update":
+                    chat_logger.error(f"Response type is not order_update: {response_data.get('type')}")
+                    return response_data.get("message", ai_response)
+                
+                if "items" not in response_data:
+                    chat_logger.error(f"No items in response: {response_data}")
+                    return "I apologize, but I couldn't process your order correctly. Could you please try again?"
+                
+                # Validate each item
+                for item in response_data["items"]:
+                    if "id" not in item:
+                        chat_logger.error(f"Item missing id: {item}")
+                        return "I apologize, but I couldn't process your order correctly. Could you please try again?"
+                    if not processor.get_menu_item(item["id"]):
+                        chat_logger.error(f"Invalid item id: {item['id']}")
+                        return f"I apologize, but I couldn't find the item '{item.get('name', 'unknown')}' in our menu. Could you please try ordering something else?"
+                
+                if isinstance(response_data, dict) and response_data.get("type") == "order_update":
+                    # Backend guardrail: correct any LLM mistakes about non-required clarifications
+                    for item_data in response_data.get("items", []):
+                        item_id = item_data.get("id")
+                        clarification_needed = item_data.get("clarification_needed")
+                        menu_item = processor.get_menu_item(item_id)
+                        
+                        # Validate size if provided
+                        customizations = item_data.get("customizations", {})
+                        if "size" in customizations:
+                            size = customizations["size"]
+                            if (
+                                not hasattr(menu_item, "customization_options")
+                                or "size" not in menu_item.customization_options
+                                or size not in menu_item.customization_options["size"]["options"]
+                            ):
+                                chat_logger.error(f"Invalid size '{size}' for item '{item_id}'")
+                                return f"I apologize, but '{size}' is not a valid size for that item. Please try again with a valid size option."
+                        
+                        # If clarification_needed is set for a non-required customization, override to confirmed
+                        if (
+                            clarification_needed
+                            and menu_item
+                            and hasattr(menu_item, "customization_options")
+                            and clarification_needed in menu_item.customization_options
+                        ):
+                            cust_option = menu_item.customization_options[clarification_needed]
+                            # cust_option can be a dict or list; handle both
+                            if isinstance(cust_option, dict):
+                                required = cust_option.get("required", False)
+                            elif isinstance(cust_option, list):
+                                # If list, not required
+                                required = False
+                            else:
+                                required = False
+                            if not required:
+                                item_data["status"] = "confirmed"
+                                item_data["clarification_needed"] = None
+                    # Process order updates
+                    for item_data in response_data.get("items", []):
+                        item_id = item_data.get("id")
+                        customizations = item_data.get("customizations", {})
+                        status = ItemStatus(item_data.get("status", "confirmed"))  # Convert string to enum
+                        clarification_needed = item_data.get("clarification_needed")
 
-                # Check if item is already in order; if so, update it instead of adding a new one
-                updated = current_order.update_item_customizations(
-                    item_id=item_id,
-                    customizations=customizations,
-                    price=price
-                )
-                if not updated:
-                    # Validate that the item exists in the menu
-                    menu_item = processor.get_menu_item(item_id)
-                    if not menu_item:
-                        chat_logger.error(f"Item with id '{item_id}' does not exist in the menu")
-                        return f"I apologize, but I couldn't find the item '{item_data.get('name', 'unknown')}' in our menu. Could you please try ordering something else?"
-                    
-                    current_order.add_item(
-                        item_id=item_id,
-                        name=item_data.get('name', menu_item.name),  # Use menu item name if not provided
-                        price=price,
-                        status=ItemStatus(status),
-                        clarification_needed=clarification_needed,
-                        customizations=customizations
-                    )
-            # Add AI response to conversation memory
-            memory.chat_memory.add_ai_message(response_data.get("message", "I've updated your order. What else can I help you with?"))
-            # Get a human-readable response
-            return response_data.get("message", "I've updated your order. What else can I help you with?")
-        # If we have a pending clarification, try to process the response
-        # Advanced: If user message mentions a specific pending item's name, update that item
-        pending_items = [(i, item) for i, item in enumerate(current_order.items) if item.status != ItemStatus.CONFIRMED]
-        # Try to find which pending item the user is referring to
-        matched_index = None
-        user_msg_lower = message.lower()
-        for idx, pending_item in pending_items:
-            if pending_item.name.lower() in user_msg_lower:
-                matched_index = idx
-                break
-        if matched_index is None and pending_items:
-            # Default to the first pending item
-            matched_index, item = pending_items[0]
-        else:
-            item = current_order.items[matched_index] if matched_index is not None else None
-        if item:
-            menu_item = processor.get_menu_item(item.id)
-            if menu_item:
-                if item.status == ItemStatus.NEEDS_CUSTOMIZATION and menu_item.customization_options:
-                    customizations = item.customizations.copy() if item.customizations else {}
-                    for option_type, options_data in menu_item.customization_options.items():
-                        available_options = options_data.get('options', [])
-                        for opt in available_options:
-                            opt_name = opt['name'].lower() if isinstance(opt, dict) and 'name' in opt else str(opt).lower()
-                            if opt_name in user_msg_lower:
-                                customizations[option_type] = opt['name'] if isinstance(opt, dict) and 'name' in opt else opt
-                    is_valid, _ = processor.validate_customization(item.id, customizations)
-                    if is_valid:
-                        current_order.update_next_clarification(price=item.price, customizations=customizations)
-                        return f"I've updated your {item.name} with your customizations: {customizations}."
-                    else:
-                        return "I couldn't match your customization to available options. Please specify valid options."
-        # If the user's message refers to a confirmed item and contains valid customizations, allow updating
-        # Search all items (confirmed and pending) for a name match
-        for idx, order_item in enumerate(current_order.items):
-            if order_item.name.lower() in user_msg_lower and order_item.status == ItemStatus.CONFIRMED:
-                menu_item = processor.get_menu_item(order_item.id)
-                if menu_item and menu_item.customization_options:
-                    customizations = order_item.customizations.copy() if order_item.customizations else {}
-                    for option_type, options_data in menu_item.customization_options.items():
-                        available_options = options_data.get('options', [])
-                        for opt in available_options:
-                            opt_name = opt['name'].lower() if isinstance(opt, dict) and 'name' in opt else str(opt).lower()
-                            if opt_name in user_msg_lower:
-                                customizations[option_type] = opt['name'] if isinstance(opt, dict) and 'name' in opt else opt
-                    is_valid, _ = processor.validate_customization(order_item.id, customizations)
-                    if is_valid:
-                        # Update the confirmed item with new customizations
-                        order_item.customizations = customizations
-                        return f"I've updated your {order_item.name} with your new customizations: {customizations}."
-                    else:
-                        return f"I couldn't match your customization to available options for {order_item.name}. Please specify valid options."
-        print(f"[DEBUG] Order after processing response: {current_order.to_dict()}")
-        return ai_response
+                        # Check if item is already in order; if so, update it instead of adding a new one
+                        updated = current_order.update_item_customizations(
+                            item_id=item_id,
+                            customizations=customizations
+                        )
+                        if not updated:
+                            # Validate that the item exists in the menu
+                            menu_item = processor.get_menu_item(item_id)
+                            if not menu_item:
+                                chat_logger.error(f"Item with id '{item_id}' does not exist in the menu")
+                                return f"I apologize, but I couldn't find the item '{item_data.get('name', 'unknown')}' in our menu. Could you please try ordering something else?"
+                            
+                            current_order.add_item(
+                                item_id=item_id,
+                                name=item_data.get('name', menu_item.name),  # Use menu item name if not provided
+                                status=status,  # Pass the enum directly
+                                clarification_needed=clarification_needed,
+                                customizations=customizations
+                            )
+                    # Add AI response to conversation memory
+                    memory.chat_memory.add_user_message(message)
+                    memory.chat_memory.add_ai_message(response_data.get("message", "I've updated your order. What else can I help you with?"))
+                    # Get a human-readable response
+                    return response_data.get("message", "I've updated your order. What else can I help you with?")
+            except json.JSONDecodeError:
+                chat_logger.error(f"Failed to parse AI response as JSON: {ai_response}")
+                return ai_response
+            except Exception as e:
+                chat_logger.error(f"Error processing AI response: {str(e)}")
+                return "I apologize, but I couldn't process your order correctly. Could you please try again?"
+            
+            # If we have a pending clarification, try to process the response
+            # Advanced: If user message mentions a specific pending item's name, update that item
+            pending_items = [(i, item) for i, item in enumerate(current_order.items) if item.status != ItemStatus.CONFIRMED]
+            # Try to find which pending item the user is referring to
+            matched_index = None
+            user_msg_lower = message.lower()
+            for idx, pending_item in pending_items:
+                if pending_item.name.lower() in user_msg_lower:
+                    matched_index = idx
+                    break
+            if matched_index is None and pending_items:
+                # Default to the first pending item
+                matched_index, item = pending_items[0]
+            else:
+                item = current_order.items[matched_index] if matched_index is not None else None
+            if item:
+                menu_item = processor.get_menu_item(item.item_id)
+                if menu_item:
+                    if item.status == ItemStatus.NEEDS_CUSTOMIZATION and menu_item.customization_options:
+                        customizations = item.customizations.copy() if item.customizations else {}
+                        for option_type, options_data in menu_item.customization_options.items():
+                            available_options = options_data.get('options', [])
+                            for opt in available_options:
+                                opt_name = opt['name'].lower() if isinstance(opt, dict) and 'name' in opt else str(opt).lower()
+                                if opt_name in user_msg_lower:
+                                    customizations[option_type] = opt['name'] if isinstance(opt, dict) and 'name' in opt else opt
+                        is_valid, _ = processor.validate_customization(item.item_id, customizations)
+                        if is_valid:
+                            current_order.update_item_customizations(item.item_id, customizations)
+                            return f"I've updated your {item.name} with your customizations: {customizations}."
+                        else:
+                            return "I couldn't match your customization to available options. Please specify valid options."
+            # If the user's message refers to a confirmed item and contains valid customizations, allow updating
+            # Search all items (confirmed and pending) for a name match
+            for idx, order_item in enumerate(current_order.items):
+                if order_item.name.lower() in user_msg_lower and order_item.status == ItemStatus.CONFIRMED:
+                    menu_item = processor.get_menu_item(order_item.item_id)
+                    if menu_item and menu_item.customization_options:
+                        customizations = order_item.customizations.copy() if order_item.customizations else {}
+                        for option_type, options_data in menu_item.customization_options.items():
+                            available_options = options_data.get('options', [])
+                            for opt in available_options:
+                                opt_name = opt['name'].lower() if isinstance(opt, dict) and 'name' in opt else str(opt).lower()
+                                if opt_name in user_msg_lower:
+                                    customizations[option_type] = opt['name'] if isinstance(opt, dict) and 'name' in opt else opt
+                        is_valid, _ = processor.validate_customization(order_item.item_id, customizations)
+                        if is_valid:
+                            # Update the confirmed item with new customizations
+                            order_item.customizations = customizations
+                            return f"I've updated your {order_item.name} with your new customizations: {customizations}."
+                        else:
+                            return f"I couldn't match your customization to available options for {order_item.name}. Please specify valid options."
+            print(f"[DEBUG] Order after processing response: {current_order.get_items()}")
+            return ai_response
 
     except Exception as e:
         error_msg = f"An error occurred while processing your request: {str(e)}"
@@ -378,75 +367,100 @@ def home():
 
 @app.route("/send_message", methods=["POST"])
 def send_message():
-    data = request.get_json()
-    session_id = data.get('session_id')
-    message = data.get('message')
-    model = data.get('model', 'gpt-4')  # Default to GPT-4 if not specified
-    
     try:
-        # Log user message
-        chat_logger.info(f"USER ({session_id}): {message}")
+        data = request.get_json()
+        message = data.get("message")
+        session_id = data.get("session_id")
+        model = data.get("model", "gpt-4")
+
+        if not session_id:
+            return jsonify({"error": "Missing session_id"}), 400
+
+        # Get or create order for this session
+        if session_id not in current_orders:
+            current_orders[session_id] = Order()
+        current_order = current_orders[session_id]
+
+        # Get chat memory for this session
+        if session_id not in session_memories:
+            session_memories[session_id] = ConversationBufferMemory(return_messages=True)
+        memory = session_memories[session_id]
+
+        # Generate response
         response = generate_response(message, session_id, model)
-        # Log bot response
-        chat_logger.info(f"BOT ({session_id}): {response}")
-        print(f"[DEBUG] Current order after response: {current_orders[session_id].to_dict()}")
-        # Include current order in response
-        order_data = current_orders[session_id].to_dict() if session_id in current_orders else {"items": [], "total": 0}
+
+        # Return response with current order data
         return jsonify({
-            'response': response,
-            'order': order_data
+            "response": response,
+            "order": {
+                "items": current_order.get_items(),
+                "total": current_order.get_total()
+            }
+        })
+
+    except Exception as e:
+        error_msg = f"An error occurred while processing your request: {str(e)}"
+        chat_logger.error(error_msg)
+        return jsonify({"error": error_msg}), 500
+
+@app.route("/update_order", methods=["POST"])
+def update_order():
+    try:
+        data = request.get_json()
+        session_id = data.get("session_id")
+        if not session_id:
+            return jsonify({"error": "Missing session_id"}), 400
+        
+        if session_id not in current_orders:
+            current_orders[session_id] = Order()
+        current_order = current_orders[session_id]
+        
+        # Process order updates
+        for item_data in data.get("items", []):
+            item_id = item_data.get("id")
+            status = item_data.get("status", "confirmed")
+            clarification_needed = item_data.get("clarification_needed")
+            customizations = item_data.get("customizations", {})
+            
+            # Validate menu item exists
+            menu_item = processor.get_menu_item(item_id)
+            if not menu_item:
+                return jsonify({"error": f"Item with id '{item_id}' does not exist"}), 400
+            
+            # Validate size if provided
+            if "size" in customizations:
+                size = customizations["size"]
+                if (
+                    not hasattr(menu_item, "customization_options")
+                    or "size" not in menu_item.customization_options
+                    or size not in menu_item.customization_options["size"]["options"]
+                ):
+                    return jsonify({"error": f"Invalid size '{size}' for item '{item_id}'"}), 400
+            
+            # Check if item exists in order
+            updated = current_order.update_item_customizations(
+                item_id=item_id,
+                customizations=customizations
+            )
+            if not updated:
+                # Add new item
+                current_order.add_item(
+                    item_id=item_id,
+                    name=item_data.get('name', menu_item.name),
+                    status=status,
+                    clarification_needed=clarification_needed,
+                    customizations=customizations
+                )
+        
+        return jsonify({
+            "message": "Order updated successfully",
+            "order": {
+                "items": current_order.get_items(),
+                "total": current_order.get_total()
+            }
         })
     except Exception as e:
-        error_message = f"Sorry, there was an error processing your request: {str(e)}"
-        # Log the error response
-        chat_logger.error(f"ERROR ({session_id}): {error_message}")
-        return jsonify({'error': error_message})
-
-@app.route('/update_order', methods=['POST'])
-def update_order():
-    data = request.json
-    session_id = data.get('session_id')
-    action = data.get('action')
-    
-    if not session_id or session_id not in current_orders:
-        current_orders[session_id] = Order()
-    
-    order = current_orders[session_id]
-    
-    if action == 'add':
-        items = data.get('items', [])
-        for item_data in items:
-            # Convert status string to enum
-            status_str = item_data.get('status', 'pending')
-            try:
-                status = ItemStatus(status_str)
-            except ValueError:
-                status = ItemStatus.PENDING
-                
-            # Validate that the item exists in the menu
-            item_id = item_data.get('id')
-            if not processor.get_menu_item(item_id):
-                return jsonify({
-                    'error': f"Item with id '{item_id}' does not exist in the menu"
-                }), 400
-                
-            order.add_item(
-                item_id=item_id,
-                name=item_data.get('name', ''),
-                price=float(item_data.get('price', 0)),
-                status=status,
-                clarification_needed=item_data.get('clarification_needed')
-            )
-    elif action == 'remove':
-        index = data.get('index')
-        if index is not None and 0 <= index < len(order.items):
-            order.remove_item(index)
-    
-    # Return the complete order data
-    return jsonify({
-        'items': [item.to_dict() for item in order.items],
-        'total': order.total
-    })
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/menu_item/<item_id>")
 def get_menu_item(item_id):
