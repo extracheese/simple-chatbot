@@ -26,3 +26,8 @@ chroma_db/
 
 # Local development
 instance/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

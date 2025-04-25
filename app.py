@@ -14,14 +14,27 @@ from order_update_schema import order_update_schema
 from langchain.memory import ConversationBufferMemory
 
 # Set up chat conversation logging
-chat_log_path = os.path.join(os.path.dirname(__file__), "chat_conversation.log")
+log_dir = os.path.join(os.path.dirname(__file__), "logs")
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+chat_log_path = os.path.join(log_dir, "chat_conversation.log")
 chat_logger = logging.getLogger("chat_logger")
 chat_logger.setLevel(logging.INFO)
 if not chat_logger.hasHandlers():
     handler = logging.FileHandler(chat_log_path, encoding="utf-8")
-    formatter = logging.Formatter('%(asctime)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     chat_logger.addHandler(handler)
+
+# Also set up a debug log for order processing
+debug_log_path = os.path.join(log_dir, "debug.log")
+debug_logger = logging.getLogger("debug_logger")
+debug_logger.setLevel(logging.DEBUG)
+if not debug_logger.hasHandlers():
+    handler = logging.FileHandler(debug_log_path, encoding="utf-8")
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    debug_logger.addHandler(handler)
 
 # Load the system prompt from an external file
 with open("system_prompt.txt", "r") as f:
@@ -59,20 +72,57 @@ class Order:
         if not menu_item:
             raise ValueError(f"Item with id '{item_id}' does not exist")
 
+        # Initialize customizations
+        item_customizations = {}
+        
+        # Get default customizations from menu item
+        if menu_item.customization_options:
+            for option_type, options in menu_item.customization_options.items():
+                if "default" in options:
+                    item_customizations[option_type] = options["default"]
+                elif "defaults" in options:
+                    # For options that can have multiple selections, just use the defaults
+                    item_customizations[option_type] = ", ".join(options["defaults"])
+
+        # Update with provided customizations if any
+        if customizations:
+            item_customizations.update(customizations)
+            
+        # Validate customizations
+        if item_customizations:
+            is_valid, error_msg = processor.validate_customization(item_id, item_customizations)
+            if not is_valid:
+                debug_logger.error(f"Invalid customization for {item_id}: {error_msg}")
+                raise ValueError(error_msg)
+
+        # Check for required customizations that don't have defaults
+        required_customizations = []
+        if menu_item.customization_options:
+            for option_type, options in menu_item.customization_options.items():
+                if (options.get("required", False) and 
+                    option_type not in item_customizations and
+                    "default" not in options and
+                    "defaults" not in options):
+                    required_customizations.append(option_type)
+
+        # Update status based on required customizations
+        if required_customizations:
+            status = ItemStatus.NEEDS_CUSTOMIZATION
+            if not clarification_needed:
+                clarification_needed = f"Please specify {', '.join(required_customizations)}"
+            debug_logger.debug(f"Item {item_id} needs customization: {clarification_needed}")
+
         # Create order item
         order_item = OrderItem(
             item_id=item_id,
             name=name or menu_item.name,
             status=status,
             clarification_needed=clarification_needed,
-            customizations=customizations or {}
+            customizations=item_customizations
         )
         self.items.append(order_item)
+        debug_logger.debug(f"Added item {item_id} to order with status {status} and customizations {item_customizations}")
         return order_item
-
-    def remove_item(self, index: int):
-        if 0 <= index < len(self.items):
-            self.items.pop(index)
 
     def update_item_customizations(self, item_id: str, customizations: Dict[str, str], index: Optional[int] = None):
         """Update customizations for an item"""
@@ -89,11 +139,50 @@ class Order:
             # Find the first item with matching id
             item = next((item for item in self.items if item.item_id == item_id), None)
             if not item:
+                debug_logger.error(f"Item {item_id} not found in order")
                 return False
 
-        # Update customizations
-        item.customizations.update(customizations)
+        # Get current customizations
+        current_customizations = item.customizations.copy()
+        
+        # Update with new customizations
+        current_customizations.update(customizations)
+        
+        # Validate the updated customizations
+        is_valid, error_msg = processor.validate_customization(item_id, current_customizations)
+        if not is_valid:
+            debug_logger.error(f"Invalid customization for {item_id}: {error_msg}")
+            raise ValueError(error_msg)
+
+        # Update the item's customizations
+        item.customizations = current_customizations
+        debug_logger.debug(f"Updated customizations for {item_id}: {current_customizations}")
+
+        # Check if all required customizations are provided
+        required_customizations = []
+        if menu_item.customization_options:
+            for option_type, options in menu_item.customization_options.items():
+                if (options.get("required", False) and 
+                    option_type not in current_customizations and
+                    "default" not in options and
+                    "defaults" not in options):
+                    required_customizations.append(option_type)
+
+        # Update status based on customization requirements
+        if required_customizations:
+            item.status = ItemStatus.NEEDS_CUSTOMIZATION
+            item.clarification_needed = f"Please specify {', '.join(required_customizations)}"
+            debug_logger.debug(f"Item {item_id} still needs customization: {item.clarification_needed}")
+        else:
+            item.status = ItemStatus.CONFIRMED
+            item.clarification_needed = None
+            debug_logger.debug(f"Item {item_id} customization completed")
+
         return True
+
+    def remove_item(self, index: int):
+        if 0 <= index < len(self.items):
+            self.items.pop(index)
 
     def get_total(self) -> float:
         """Calculate the total price of the order based on menu prices"""
@@ -415,51 +504,63 @@ def update_order():
             current_orders[session_id] = Order()
         current_order = current_orders[session_id]
         
+        debug_logger.debug(f"Updating order for session {session_id}")
+        debug_logger.debug(f"Current order items: {current_order.get_items()}")
+        debug_logger.debug(f"Received update data: {data}")
+        
         # Process order updates
         for item_data in data.get("items", []):
             item_id = item_data.get("id")
-            status = item_data.get("status", "confirmed")
+            status = item_data.get("status", ItemStatus.NEEDS_CUSTOMIZATION.value)
             clarification_needed = item_data.get("clarification_needed")
             customizations = item_data.get("customizations", {})
             
             # Validate menu item exists
             menu_item = processor.get_menu_item(item_id)
             if not menu_item:
+                debug_logger.error(f"Item not found: {item_id}")
                 return jsonify({"error": f"Item with id '{item_id}' does not exist"}), 400
             
-            # Validate size if provided
-            if "size" in customizations:
-                size = customizations["size"]
-                if (
-                    not hasattr(menu_item, "customization_options")
-                    or "size" not in menu_item.customization_options
-                    or size not in menu_item.customization_options["size"]["options"]
-                ):
-                    return jsonify({"error": f"Invalid size '{size}' for item '{item_id}'"}), 400
-            
             # Check if item exists in order
-            updated = current_order.update_item_customizations(
-                item_id=item_id,
-                customizations=customizations
-            )
-            if not updated:
+            existing_items = [i for i in current_order.get_items() if i['id'] == item_id]
+            if existing_items:
+                # Update existing item
+                debug_logger.debug(f"Updating existing item {item_id} with customizations: {customizations}")
+                try:
+                    current_order.update_item_customizations(
+                        item_id=item_id,
+                        customizations=customizations
+                    )
+                except ValueError as e:
+                    debug_logger.error(f"Error updating item {item_id}: {str(e)}")
+                    return jsonify({"error": str(e)}), 400
+            else:
                 # Add new item
-                current_order.add_item(
-                    item_id=item_id,
-                    name=item_data.get('name', menu_item.name),
-                    status=status,
-                    clarification_needed=clarification_needed,
-                    customizations=customizations
-                )
+                debug_logger.debug(f"Adding new item {item_id} with customizations: {customizations}")
+                try:
+                    current_order.add_item(
+                        item_id=item_id,
+                        name=item_data.get('name', menu_item.name),
+                        status=status,
+                        clarification_needed=clarification_needed,
+                        customizations=customizations
+                    )
+                except ValueError as e:
+                    debug_logger.error(f"Error adding item {item_id}: {str(e)}")
+                    return jsonify({"error": str(e)}), 400
+        
+        updated_items = current_order.get_items()
+        debug_logger.debug(f"Updated order items: {updated_items}")
         
         return jsonify({
             "message": "Order updated successfully",
             "order": {
-                "items": current_order.get_items(),
+                "items": updated_items,
                 "total": current_order.get_total()
             }
         })
     except Exception as e:
+        debug_logger.error(f"Error updating order: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/menu_item/<item_id>")

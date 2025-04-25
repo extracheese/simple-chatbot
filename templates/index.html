@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>McDonald's Drive-Thru AI</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         .chat-container {
@@ -89,32 +90,70 @@
                 height: calc(100vh - 16rem);
             }
         }
+        /* McDonald's themed spinner and thinking indicator */
         .thinking-cue {
             display: flex;
             align-items: center;
-            color: #888;
-            font-style: italic;
-            margin: 10px 0;
-            font-size: 1rem;
+            gap: 8px;
+            color: #666;
+            margin: 12px 0;
+            padding: 12px 16px;
+            background-color: #fff3cd;
+            border-radius: 16px;
+            max-width: 160px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .thinking-cue .dot {
-            height: 8px;
-            width: 8px;
-            margin: 0 2px;
-            background-color: #bbb;
+
+        .spinner-container {
+            position: relative;
+            width: 24px;
+            height: 24px;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid transparent;
             border-radius: 50%;
-            display: inline-block;
-            animation: thinking-bounce 1.4s infinite both;
+            border-top-color: #ff0000;    /* McDonald's Red */
+            border-right-color: #ffc72c;  /* McDonald's Yellow */
+            border-bottom-color: #da291c; /* McDonald's Dark Red */
+            border-left-color: #ffbc0d;   /* McDonald's Gold */
+            animation: spin 1s linear infinite;
         }
-        .thinking-cue .dot:nth-child(2) {
-            animation-delay: 0.2s;
+
+        .spinner::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 3px solid transparent;
+            border-radius: 50%;
+            border-top-color: #ff0000;
+            border-right-color: #ffc72c;
+            border-bottom-color: #da291c;
+            border-left-color: #ffbc0d;
+            animation: spin 2s linear infinite reverse;
         }
-        .thinking-cue .dot:nth-child(3) {
-            animation-delay: 0.4s;
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
-        @keyframes thinking-bounce {
-            0%, 80%, 100% { transform: scale(1); }
-            40% { transform: scale(1.5); }
+
+        .thinking-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #444;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
         }
     </style>
 </head>
@@ -165,7 +204,7 @@
                     <div class="border-t p-3 lg:p-4 mt-auto">
                         <div class="flex space-x-4">
                             <input type="text" id="message-input"
-                                class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                                 placeholder="Type your message here..."
                                 onkeypress="handleKeyPress(event)">
                             <button id="send-button"
@@ -309,6 +348,9 @@
             appendMessage(message, 'user');
             messageInput.value = '';
             
+            // Show thinking indicator
+            showThinkingCue();
+            
             // Send to backend
             fetch('/send_message', {
                 method: 'POST',
@@ -351,8 +393,11 @@
                 appendMessage('Sorry, there was an error processing your request. Please try again.', 'bot');
             })
             .finally(() => {
+                // Hide thinking indicator and re-enable input
+                hideThinkingCue();
                 sendButton.disabled = false;
                 messageInput.disabled = false;
+                messageInput.focus();
             });
         }
 
@@ -386,8 +431,14 @@
                 cue = document.createElement('div');
                 cue.id = 'thinking-cue';
                 cue.className = 'thinking-cue';
-                cue.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span> Thinking...';
+                cue.innerHTML = `
+                    <div class="spinner-container">
+                        <div class="spinner"></div>
+                    </div>
+                    <span class="thinking-text">Processing...</span>
+                `;
                 chatContainer.appendChild(cue);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
             }
         }
         function hideThinkingCue() {
