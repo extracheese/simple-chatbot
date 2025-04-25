@@ -1,12 +1,22 @@
 import json
-from typing import List, Tuple, Dict, Optional, Any
-from dataclasses import dataclass
 import logging
+import os
+import re
+from typing import Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass, field
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, 
-                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Set up logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+if not logger.hasHandlers():
+    # Create handler
+    log_dir = os.path.join(os.path.dirname(__file__), "logs")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    handler = logging.FileHandler(os.path.join(log_dir, "debug.log"), encoding="utf-8")
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 @dataclass
 class MenuItem:
@@ -15,7 +25,7 @@ class MenuItem:
     price: float
     category: str
     description: Optional[str] = None
-    customization_options: Dict[str, Dict[str, Any]] = None
+    customization_options: Dict[str, Dict[str, Union[str, List[str], Dict[str, str]]]] = None
     sizes: List[str] = None
     variants: List[str] = None
     allergens: List[str] = None
@@ -41,7 +51,7 @@ class MenuItem:
             
         return self.price
 
-    def get_default_customizations(self) -> Dict[str, Any]:
+    def get_default_customizations(self) -> Dict[str, str]:
         """Get the default customizations for this item"""
         if not self.customization_options:
             return {}
@@ -210,7 +220,7 @@ class MenuProcessor:
             logger.exception(e)
             raise
 
-    def validate_customization(self, item_id: str, customizations: Dict[str, str]) -> Tuple[bool, Optional[str]]:
+    def validate_customization(self, item_id: str, customizations: Dict[str, List[str]]) -> Tuple[bool, Optional[str]]:
         """
         Validate customization options for a menu item
         Returns (is_valid, error_message)
@@ -225,10 +235,7 @@ class MenuProcessor:
                     return False, "This item doesn't support customization"
                 return True, None
             
-            # Track counts for each customization type
-            customization_counts = {}
-            
-            for option_type, value in customizations.items():
+            for option_type, values in customizations.items():
                 if option_type not in item.customization_options:
                     return False, f"Invalid customization type: {option_type}"
                 
@@ -236,26 +243,25 @@ class MenuProcessor:
                 options_data = item.customization_options[option_type]
                 available_options = options_data.get('options', [])
                 
-                # Check if the value matches any of the available options
-                valid_value = False
-                for option in available_options:
-                    option_value = option['name'] if isinstance(option, dict) else option
-                    if value == option_value:
-                        valid_value = True
-                        # Track count for this type of customization
-                        customization_counts[option_type] = customization_counts.get(option_type, 0) + 1
-                        # Don't allow more than 3 customizations of the same type
-                        if customization_counts[option_type] > 3:
-                            return False, f"Too many {option_type} customizations (max 3)"
-                        break
+                # Ensure values is a list
+                if not isinstance(values, list):
+                    return False, f"Expected list for {option_type}, got {type(values)}"
                 
-                if not valid_value:
-                    return False, f"Invalid {option_type} option: {value}"
+                # Check each value against available options
+                for value in values:
+                    if not any(value == (opt['name'] if isinstance(opt, dict) else opt) 
+                             for opt in available_options):
+                        return False, f"Invalid {option_type} option: {value}"
+                
+                # Check max selections if specified
+                max_selections = options_data.get('max_selections', 3)
+                if len(values) > max_selections:
+                    return False, f"Too many {option_type} selections (max {max_selections})"
             
-            # Check if all required customizations are provided
-            for option_type, options_data in item.customization_options.items():
-                if options_data.get('required', False) and option_type not in customizations:
-                    return False, f"Missing required {option_type} customization"
+            # Check required customizations
+            for opt_type, opt_data in item.customization_options.items():
+                if opt_data.get('required', False) and opt_type not in customizations:
+                    return False, f"Missing required {opt_type} customization"
             
             return True, None
         except Exception as e:

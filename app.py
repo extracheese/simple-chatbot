@@ -12,6 +12,7 @@ import re
 import logging
 from order_update_schema import order_update_schema
 from langchain.memory import ConversationBufferMemory
+import traceback
 
 # Set up chat conversation logging
 log_dir = os.path.join(os.path.dirname(__file__), "logs")
@@ -21,20 +22,28 @@ chat_log_path = os.path.join(log_dir, "chat_conversation.log")
 chat_logger = logging.getLogger("chat_logger")
 chat_logger.setLevel(logging.INFO)
 if not chat_logger.hasHandlers():
-    handler = logging.FileHandler(chat_log_path, encoding="utf-8")
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    chat_logger.addHandler(handler)
+    try:
+        handler = logging.FileHandler(chat_log_path, encoding="utf-8")
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        chat_logger.addHandler(handler)
+        chat_logger.info("Chat logger initialized.")
+    except Exception as e:
+        print(f"ERROR: Failed to initialize chat_logger: {e}")
 
 # Also set up a debug log for order processing
 debug_log_path = os.path.join(log_dir, "debug.log")
 debug_logger = logging.getLogger("debug_logger")
 debug_logger.setLevel(logging.DEBUG)
 if not debug_logger.hasHandlers():
-    handler = logging.FileHandler(debug_log_path, encoding="utf-8")
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    debug_logger.addHandler(handler)
+    try:
+        handler = logging.FileHandler(debug_log_path, encoding="utf-8")
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        debug_logger.addHandler(handler)
+        debug_logger.debug("Debug logger initialized.")
+    except Exception as e:
+        print(f"ERROR: Failed to initialize debug_logger: {e}")
 
 # Load the system prompt from an external file
 with open("system_prompt.txt", "r") as f:
@@ -58,7 +67,11 @@ class OrderItem:
         menu_item = processor.get_menu_item(self.item_id)
         if not menu_item:
             return 0.0
-        size = self.customizations.get('size')
+        
+        # Extract the size string from the list, if it exists
+        size_value = self.customizations.get('size')
+        size = size_value[0] if isinstance(size_value, list) and size_value else None
+
         return menu_item.get_price_for_size(size)
 
 class Order:
@@ -79,13 +92,18 @@ class Order:
         if menu_item.customization_options:
             for option_type, options in menu_item.customization_options.items():
                 if "default" in options:
-                    item_customizations[option_type] = options["default"]
+                    # Convert single default to list for consistency
+                    item_customizations[option_type] = [options["default"]]
                 elif "defaults" in options:
-                    # For options that can have multiple selections, just use the defaults
-                    item_customizations[option_type] = ", ".join(options["defaults"])
+                    # Multiple defaults are already a list
+                    item_customizations[option_type] = options["defaults"]
 
         # Update with provided customizations if any
         if customizations:
+            # Convert any single values to lists for consistency
+            for option_type, value in customizations.items():
+                if not isinstance(value, list):
+                    customizations[option_type] = [value]
             item_customizations.update(customizations)
             
         # Validate customizations
@@ -448,7 +466,8 @@ def generate_response(message, session_id, model="gpt-4"):
     except Exception as e:
         error_msg = f"An error occurred while processing your request: {str(e)}"
         chat_logger.error(error_msg)
-        return error_msg
+        traceback.print_exc()
+        return jsonify({"error": error_msg}), 500
 
 @app.route("/")
 def home():
@@ -490,6 +509,7 @@ def send_message():
     except Exception as e:
         error_msg = f"An error occurred while processing your request: {str(e)}"
         chat_logger.error(error_msg)
+        traceback.print_exc()
         return jsonify({"error": error_msg}), 500
 
 @app.route("/update_order", methods=["POST"])
@@ -522,7 +542,8 @@ def update_order():
                 return jsonify({"error": f"Item with id '{item_id}' does not exist"}), 400
             
             # Check if item exists in order
-            existing_items = [i for i in current_order.get_items() if i['id'] == item_id]
+            existing_items = [i for i in current_order.items if i.item_id == item_id]
+            
             if existing_items:
                 # Update existing item
                 debug_logger.debug(f"Updating existing item {item_id} with customizations: {customizations}")
@@ -535,7 +556,7 @@ def update_order():
                     debug_logger.error(f"Error updating item {item_id}: {str(e)}")
                     return jsonify({"error": str(e)}), 400
             else:
-                # Add new item
+                # Add new item (customizations will be handled during add_item)
                 debug_logger.debug(f"Adding new item {item_id} with customizations: {customizations}")
                 try:
                     current_order.add_item(
@@ -577,5 +598,31 @@ def get_menu_item(item_id):
         "customization_options": menu_item.customization_options
     })
 
+def load_chat_history(chat_id):
+    global chat_histories
+    file_path = os.path.join('chats', f"{chat_id}.json")
+    if os.path.exists(file_path):
+        try:
+            # Use 'utf-8-sig' to handle potential BOM
+            with open(file_path, 'r', encoding='utf-8-sig') as f:
+                chat_history = json.load(f)
+                # Ensure it's a list (or handle older formats if necessary)
+                if isinstance(chat_history, list):
+                    chat_histories[chat_id] = chat_history
+                else:
+                    # Handle case where file might not contain a list (e.g., empty or corrupted)
+                    logger.warning(f"Chat history file {file_path} did not contain a list. Initializing new history.")
+                    chat_histories[chat_id] = [] 
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON from {file_path}: {e}. Initializing new history.")
+            chat_histories[chat_id] = []
+        except Exception as e:
+            logger.error(f"Error loading chat history from {file_path}: {e}. Initializing new history.")
+            chat_histories[chat_id] = []
+    else:
+        # Initialize empty history if file doesn't exist
+        chat_histories[chat_id] = []
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    # Run on all interfaces (0.0.0.0) and port 8000
+    app.run(host=os.getenv("HOST", '0.0.0.0'), port=int(os.getenv("PORT", 8000)), debug=True)
