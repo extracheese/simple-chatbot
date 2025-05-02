@@ -1,49 +1,65 @@
-from flask import Flask, render_template, request, jsonify
-from openai import AzureOpenAI
-import google.generativeai as genai
-from dotenv import load_dotenv
-import os
-from menu_processor import processor
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional
-import json
-from enum import Enum
-import re
 import logging
-from order_update_schema import order_update_schema
-from langchain.memory import ConversationBufferMemory
-import traceback
+import os
 
-# Set up chat conversation logging
-log_dir = os.path.join(os.path.dirname(__file__), "logs")
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
-chat_log_path = os.path.join(log_dir, "chat_conversation.log")
-chat_logger = logging.getLogger("chat_logger")
-chat_logger.setLevel(logging.INFO)
-if not chat_logger.hasHandlers():
-    try:
-        handler = logging.FileHandler(chat_log_path, encoding="utf-8")
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        chat_logger.addHandler(handler)
-        chat_logger.info("Chat logger initialized.")
-    except Exception as e:
-        print(f"ERROR: Failed to initialize chat_logger: {e}")
+# === Early Startup Logging Configuration ===
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[logging.StreamHandler()]) # Log to stderr
 
-# Also set up a debug log for order processing
-debug_log_path = os.path.join(log_dir, "debug.log")
-debug_logger = logging.getLogger("debug_logger")
-debug_logger.setLevel(logging.DEBUG)
-if not debug_logger.hasHandlers():
-    try:
-        handler = logging.FileHandler(debug_log_path, encoding="utf-8")
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        debug_logger.addHandler(handler)
-        debug_logger.debug("Debug logger initialized.")
-    except Exception as e:
-        print(f"ERROR: Failed to initialize debug_logger: {e}")
+startup_logger = logging.getLogger('startup')
+startup_logger.info("application.py execution started.")
+# ========================================
+
+try:
+    # Load environment variables
+    startup_logger.info("Loading environment variables...")
+    load_dotenv()
+    startup_logger.info("Environment variables loaded.")
+    # Initialize Flask app
+    startup_logger.info("Initializing Flask app...")
+    app = Flask(__name__)
+    startup_logger.info("Flask app initialized.")
+
+    # Initialize OpenAI client
+    azure_client = AzureOpenAI(
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        api_key=os.getenv("AZURE_OPENAI_KEY"),
+        api_version="2023-05-15"
+    )
+
+    # Initialize Gemini client
+    genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+    gemini_model = genai.GenerativeModel('gemini-pro')
+
+    # Initialize menu processor
+    menu_file = os.path.join(os.path.dirname(__file__), 'mcdonalds_fixed_full.json')
+    menu_items = processor.process_menu(menu_file)
+    print(f"Processed {menu_items} menu items")
+
+    # Print loaded menu items for debugging
+    for item_id, item in processor.menu_items.items():
+        print(f"Loaded item: {item_id} - {item.name}")
+
+    # Track order state
+    current_orders: Dict[str, Order] = {}
+    # Track LangChain memory per session
+    session_memories = {}
+
+    # === Environment Variable Checks (Optional but Recommended) ===
+    required_env_vars = ['AZURE_OPENAI_ENDPOINT', 'AZURE_OPENAI_KEY', 'GOOGLE_API_KEY']
+    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+    if missing_vars:
+        startup_logger.error(f"Missing critical environment variables: {', '.join(missing_vars)}")
+        # Depending on your requirements, you might want to raise an exception here
+        # raise ValueError(f"Missing critical environment variables: {', '.join(missing_vars)}")
+    else:
+        startup_logger.info("All critical environment variables seem to be present.")
+    # =========================================================
+
+except Exception as e:
+    startup_logger.critical(f"CRITICAL ERROR during initial setup: {e}", exc_info=True)
+    # Re-raise the exception to ensure the process exits if setup fails critically
+    raise
 
 # Load the system prompt from an external file
 with open("system_prompt.txt", "r") as f:
@@ -226,34 +242,6 @@ class Order:
                 'price': item.get_price()
             })
         return items
-
-app = Flask(__name__)
-load_dotenv()
-
-# Initialize OpenAI client
-azure_client = AzureOpenAI(
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_key=os.getenv("AZURE_OPENAI_KEY"),
-    api_version="2023-05-15"
-)
-
-# Initialize Gemini client
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-gemini_model = genai.GenerativeModel('gemini-pro')
-
-# Initialize menu processor
-menu_file = os.path.join(os.path.dirname(__file__), 'mcdonalds_fixed_full.json')
-menu_items = processor.process_menu(menu_file)
-print(f"Processed {menu_items} menu items")
-
-# Print loaded menu items for debugging
-for item_id, item in processor.menu_items.items():
-    print(f"Loaded item: {item_id} - {item.name}")
-
-# Track order state
-current_orders: Dict[str, Order] = {}
-# Track LangChain memory per session
-session_memories = {}
 
 def get_memory(session_id):
     if session_id not in session_memories:
@@ -625,4 +613,14 @@ def load_chat_history(chat_id):
 
 if __name__ == "__main__":
     # Run on all interfaces (0.0.0.0) and port 8000
-    app.run(host=os.getenv("HOST", '0.0.0.0'), port=int(os.getenv("PORT", 8000)), debug=True)
+    startup_logger.info("Starting Flask development server (should not happen on EB)...")
+    try:
+        app.run(host=os.getenv("HOST", '0.0.0.0'), port=int(os.getenv("PORT", 8000)), debug=True)
+    except Exception as run_e:
+        startup_logger.critical(f"Error running Flask development server: {run_e}", exc_info=True)
+    finally:
+        startup_logger.info("Flask development server stopped.")
+
+# Make app instance discoverable by WSGI server (e.g., Gunicorn)
+application = app
+startup_logger.info("WSGI application object assigned.")
