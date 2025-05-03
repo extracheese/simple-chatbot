@@ -313,8 +313,8 @@
             });
             
             // Update total
-            if (orderData.total !== undefined) {
-                orderTotal.textContent = `$${orderData.total.toFixed(2)}`;
+            if (orderData.total_amount !== undefined) {
+                orderTotal.textContent = `$${orderData.total_amount.toFixed(2)}`;
             }
         }
 
@@ -371,7 +371,9 @@
                     appendMessage('Sorry, there was an error processing your request. Please try again.', 'bot');
                 } else {
                     // Update order panel with the latest order data
+                    console.log('[sendMessage] Evaluating data.order:', data.order, 'Boolean evaluation:', Boolean(data.order));
                     if (data.order) {
+                        console.log('[sendMessage] Condition data.order is true. Calling updateOrderPanel...');
                         updateOrderPanel(data.order);
                     }
                     try {

@@ -4,10 +4,11 @@ import os
 import re
 from typing import Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
+from collections import defaultdict
 
 # Set up logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 if not logger.hasHandlers():
     # Create handler
     log_dir = os.path.join(os.path.dirname(__file__), "logs")
@@ -132,8 +133,7 @@ class MenuProcessor:
                         logger.error(f"Error processing menu item: {item.get('id', 'NO ID')} - {item.get('name', 'NO NAME')}")
                         logger.error(f"Item data: {item}")
                         logger.exception(e)
-                        raise
-
+ 
             logger.info(f"Successfully processed {len(self.menu_items)} menu items")
             return len(self.menu_items)
             
@@ -171,38 +171,57 @@ class MenuProcessor:
             logger.exception(e)
             raise
 
-    def find_menu_items(self, query: str, current_order: Optional[Dict] = None) -> List[Tuple[str, str]]:
+    def find_menu_items(self, query: str, current_order: Optional[Dict] = None) -> Tuple[str, bool]:
         """
         Find menu items relevant to the query, considering the current order context
-        Returns a list of tuples (item_text, item_id)
+        Returns a tuple (result_string, found_exact_match)
         """
-        try:
-            # Basic keyword matching for now
-            query = query.lower()
-            matches = []
-            
-            # First, check if this is a response to a pending clarification
-            if current_order and 'items' in current_order:
-                for item in current_order['items']:
-                    if item.get('status') != 'confirmed':
-                        item_id = item.get('id')
-                        if item_id in self.menu_items:
-                            menu_item = self.menu_items[item_id]
-                            matches.append((self._create_menu_item_text(menu_item), item_id))
-                        break
-            
-            # Then look for new items in the query
-            for text, item_id in self.menu_text_chunks:
-                text_lower = text.lower()
-                # Simple keyword matching
-                if any(keyword in text_lower for keyword in query.split()):
-                    matches.append((text, item_id))
-            
-            return matches
-        except Exception as e:
-            logger.error("Error finding menu items")
-            logger.exception(e)
-            raise
+        logger.info(f"Searching menu with query: '{query}'")
+        query_lower = query.lower().strip()
+        found_items = defaultdict(list)
+        exact_match_item = None
+
+        # 1. Check for exact name match first
+        for item_id, menu_item in self.menu_items.items():
+            if menu_item.name.lower() == query_lower:
+                exact_match_item = menu_item
+                logger.info(f"Found exact menu item match for '{query}': {item_id}")
+                break # Found the exact match, no need to search further
+
+        if exact_match_item:
+            # If exact match found, format only that item
+            category = exact_match_item.category.capitalize()
+            result_str = f"Found the exact item you asked for:\n{category}:\n{exact_match_item.name} (${exact_match_item.price:.2f})"
+            return result_str, True # Return the string and True for exact match
+
+        # 2. If no exact match, perform keyword search (original logic)
+        logger.info(f"No exact match found for '{query}', performing keyword search.")
+        keywords = [kw for kw in query_lower.split() if len(kw) > 2] # Basic keyword extraction
+        if not keywords:
+             return "Please provide more specific terms to search the menu.", False
+
+        for item_id, menu_item in self.menu_items.items():
+            name_lower = menu_item.name.lower()
+            description_lower = menu_item.description.lower() if menu_item.description else ""
+            category_lower = menu_item.category.lower()
+
+            # Check if any keyword is in name, description, or category
+            if any(keyword in name_lower or keyword in description_lower or keyword in category_lower for keyword in keywords):
+                found_items[menu_item.category].append(menu_item)
+
+        if not found_items:
+            return f"Sorry, I couldn't find any items matching '{query}'.", False
+
+        # Format the results grouped by category
+        result_lines = [f"Found these items matching '{query}':"]
+        for category, items in found_items.items():
+            result_lines.append(f"{category.capitalize()}:")
+            for item in items:
+                result_lines.append(f"{item.name} (${item.price:.2f})")
+        
+        result_str = "\n".join(result_lines)
+        logger.info(f"Found {sum(len(v) for v in found_items.values())} items for query '{query}': {result_str}")
+        return result_str, False # Return the string and False for non-exact match
 
     def get_menu_item(self, item_id: str) -> Optional[MenuItem]:
         """Get a menu item by its ID"""
@@ -310,5 +329,3 @@ class MenuProcessor:
             logger.error(f"Error getting item options for item: {item_id}")
             logger.exception(e)
             raise
-
-processor = MenuProcessor()
