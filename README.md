@@ -1,6 +1,5 @@
-# Simple Chatbot
-
-A chatbot application built with Python that processes menu items and handles customer orders.
+# Drive-Through Chatbot
+A personal project - exploring the limits of building a voice assistant that can handle drive-through ordering scenarios. 
 
 ## Features
 - Web-based chat interface
