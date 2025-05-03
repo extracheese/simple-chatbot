@@ -84,6 +84,7 @@ def update_order_tool(session_id: str, order_updates: Dict[str, Any], current_or
              quantity = 1
 
         # Validate item exists using MenuProcessor
+        chat_logger.debug(f"Session {session_id} - Attempting menu lookup for item name: {repr(item_name)}")
         menu_item = processor.get_menu_item(item_name)
         if not menu_item:
             chat_logger.warning(f"Session {session_id} - Item '{item_name}' not found in menu.")
@@ -92,8 +93,9 @@ def update_order_tool(session_id: str, order_updates: Dict[str, Any], current_or
             continue # Skip adding/modifying if item doesn't exist
         
         # Ensure we use the canonical name and price from the menu
-        canonical_name = menu_item['name']
-        price = menu_item.get('price', 0.0) # Use 0.0 if price is missing
+        # MenuItem is a class with attributes, not a dictionary
+        canonical_name = menu_item.name  # Use attribute access instead of dictionary access
+        price = menu_item.price  # Use attribute access instead of dictionary access
 
         if action == 'add':
             current_order.add_item(item_id=canonical_name, name=canonical_name, quantity=quantity, price=price)
@@ -132,7 +134,11 @@ def update_order_tool(session_id: str, order_updates: Dict[str, Any], current_or
     # Add current order details if anything was processed
     if items_processed_count > 0:
         current_total = current_order.calculate_total()
-        summary += f" Your current total is ${current_total:.2f}." 
+        # Check if current_total is None or a valid number
+        if current_total is not None:
+            summary += f" Your current total is ${current_total:.2f}."
+        else:
+            summary += f" Your current total is $0.00."  # Default to 0 if None
         chat_logger.info(f"Session {session_id} - Order after update: {current_order.to_dict()}")
     else:
         chat_logger.warning(f"Session {session_id} - No items were successfully processed in update_order_tool call.")

@@ -2,6 +2,7 @@ import logging
 from openai import AzureOpenAI, APIError, Timeout
 from typing import List, Dict, Any, Optional, Union
 import json
+import os
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage
 
 # Import configuration safely
@@ -92,7 +93,32 @@ def _format_messages_for_api(messages: List[Union[BaseMessage, Dict[str, Any]]])
                 tool_calls = msg.get("tool_calls")
                 if tool_calls:
                     # Assistant message with tool calls
-                    msg_dict = {"role": "assistant", "tool_calls": tool_calls, "content": None}
+                    # Validate/Fix tool_calls structure from dictionary
+                    api_tool_calls = []
+                    if isinstance(tool_calls, list):
+                        for tc in tool_calls:
+                            if isinstance(tc, dict) and 'id' in tc:
+                                # Ensure type is 'function'
+                                tc['type'] = 'function'
+                                # Ensure 'function' field exists (basic check)
+                                if 'function' not in tc:
+                                     # Attempt to reconstruct if only name/args present (less likely for dicts)
+                                     if 'name' in tc and 'args' in tc:
+                                         logger.warning(f"Reconstructing 'function' field for tool call {tc.get('id')}")
+                                         # Ensure args are JSON strings
+                                         args_val = tc['args']
+                                         arguments_str = json.dumps(args_val) if isinstance(args_val, dict) else args_val
+                                         tc['function'] = {'name': tc['name'], 'arguments': arguments_str}
+                                     else:
+                                         logger.warning(f"Tool call {tc.get('id')} missing 'function' field and cannot reconstruct.")
+                                         continue # Skip malformed tool calls
+                                api_tool_calls.append(tc)
+                            else:
+                                logger.warning(f"Skipping invalid tool call structure in dict: {tc}")
+                    else:
+                         logger.warning(f"'tool_calls' in assistant dict message is not a list: {tool_calls}")
+
+                    msg_dict = {"role": "assistant", "tool_calls": api_tool_calls, "content": None} # Use corrected list
                     last_message_had_tool_calls = True
                 else:
                     # Regular assistant message
@@ -167,12 +193,15 @@ def get_llm_completion(model: str, messages: List[Union[BaseMessage, Dict[str, A
 
     # Format messages using the helper function with detailed logging
     formatted_messages = _format_messages_for_api(messages)
-
-    chat_logger.debug(f"Sending request to LLM. Model: {model}, Formatted Messages: {formatted_messages}, Tools: {'Present' if tools else 'Absent'}")
+    
+    # For Azure OpenAI, we need to use the deployment name as the model parameter
+    # Log both the requested model and the actual deployment name being used
+    deployment_name = os.environ.get('AZURE_OPENAI_DEPLOYMENT_NAME', model)
+    chat_logger.debug(f"Sending request to LLM. Requested Model: {model}, Using Deployment: {deployment_name}, Formatted Messages: {formatted_messages}, Tools: {'Present' if tools else 'Absent'}")
 
     try:
         response = _azure_client.chat.completions.create(
-            model=model,
+            model=deployment_name,  # Use the deployment name for Azure OpenAI
             messages=formatted_messages, # Pass the API-safe list
             tools=tools if tools else None,  # Use None if no tools
             tool_choice=tool_choice if tool_choice else None, # Use None if no choice

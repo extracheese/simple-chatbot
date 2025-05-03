@@ -1,14 +1,41 @@
 """Main Flask application file for the chatbot."""
 import os
 from dotenv import load_dotenv
+import json
+
+# Print environment variables before clearing for debugging
+azure_vars_before = {k: v for k, v in os.environ.items() if k.startswith('AZURE_')}
+print(f"Azure vars BEFORE clearing: {json.dumps(azure_vars_before, indent=2)}")
+
+# Clear any existing Azure OpenAI environment variables to prevent caching issues
+azure_vars = [
+    'AZURE_OPENAI_DEPLOYMENT_NAME',
+    'AZURE_OPENAI_MODEL',
+    'AZURE_API_VERSION',
+    'AZURE_OPENAI_ENDPOINT',
+    'AZURE_OPENAI_API_KEY'
+]
+
+for var in azure_vars:
+    if var in os.environ:
+        print(f"Removing existing {var}")
+        del os.environ[var]
+
+# Print environment variables after clearing for debugging
+azure_vars_after_clear = {k: v for k, v in os.environ.items() if k.startswith('AZURE_')}
+print(f"Azure vars AFTER clearing: {json.dumps(azure_vars_after_clear, indent=2)}")
 
 # Load environment variables from .env file *first*
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-loaded = load_dotenv(dotenv_path=dotenv_path)
+loaded = load_dotenv(dotenv_path=dotenv_path, override=True)
 if loaded:
     print(f"Loaded environment variables from: {dotenv_path}") # Simple print for initial check
 else:
     print(f"Warning: .env file not found or not loaded from: {dotenv_path}")
+
+# Print environment variables after loading for debugging
+azure_vars_after_load = {k: v for k, v in os.environ.items() if k.startswith('AZURE_')}
+print(f"Azure vars AFTER loading: {json.dumps(azure_vars_after_load, indent=2)}")
 
 # Standard library imports
 import logging

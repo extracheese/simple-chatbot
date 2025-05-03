@@ -32,9 +32,9 @@ def setup_logging():
     chat_logger.addHandler(file_handler)
     chat_logger.setLevel(logging.DEBUG) # Ensure chat logger captures DEBUG
     startup_logger.addHandler(file_handler)
-    startup_logger.setLevel(logging.INFO)
+    startup_logger.setLevel(logging.DEBUG) # Changed from INFO to DEBUG
     menu_logger.addHandler(file_handler)
-    menu_logger.setLevel(logging.INFO) # Or DEBUG if needed from menu processor
+    menu_logger.setLevel(logging.DEBUG) # Changed from INFO to DEBUG
 
     # Prevent loggers from propagating to the root logger 
     chat_logger.propagate = False

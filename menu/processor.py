@@ -8,16 +8,6 @@ from collections import defaultdict
 
 # Set up logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-if not logger.hasHandlers():
-    # Create handler
-    log_dir = os.path.join(os.path.dirname(__file__), "logs")
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    handler = logging.FileHandler(os.path.join(log_dir, "debug.log"), encoding="utf-8")
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
 
 @dataclass
 class MenuItem:
@@ -223,19 +213,34 @@ class MenuProcessor:
         logger.info(f"Found {sum(len(v) for v in found_items.values())} items for query '{query}': {result_str}")
         return result_str, False # Return the string and False for non-exact match
 
-    def get_menu_item(self, item_id: str) -> Optional[MenuItem]:
-        """Get a menu item by its ID"""
+    def get_menu_item(self, item_id_or_name: str) -> Optional[MenuItem]:
+        """Get a menu item by its ID or name (case-insensitive)."""
         try:
-            logger.debug(f"Looking for menu item: {item_id}")
-            logger.debug(f"Available menu items: {list(self.menu_items.keys())}")
-            item = self.menu_items.get(item_id)
+            logger.debug(f"Looking for menu item by ID or Name: '{item_id_or_name}'")
+            
+            # 1. Try lookup by ID first
+            item = self.menu_items.get(item_id_or_name)
             if item:
-                logger.debug(f"Found menu item: {item.name}")
-            else:
-                logger.debug(f"Menu item not found: {item_id}")
-            return item
+                logger.debug(f"Found menu item by ID: {item.name} (ID: {item_id_or_name})")
+                return item
+
+            # 2. If not found by ID, try case-insensitive lookup by name
+            logger.debug(f"Item not found by ID '{item_id_or_name}', attempting lookup by name.")
+            search_name_lower = item_id_or_name.lower()
+            for menu_item in self.menu_items.values():
+                logger.debug(f"Comparing '{menu_item.name.lower()}' == '{search_name_lower}'") 
+                if menu_item.name.lower() == search_name_lower:
+                    logger.debug(f"Found menu item by name match: {menu_item.name} (ID: {menu_item.id})")
+                    return menu_item
+                
+            # 3. If not found by ID or name
+            logger.debug(f"Menu item not found by ID or name: '{item_id_or_name}'")
+            # Keep this log for context, even if redundant with the one above
+            # logger.debug(f"Available menu item IDs: {list(self.menu_items.keys())}") 
+            return None
+
         except Exception as e:
-            logger.error(f"Error getting menu item: {item_id}")
+            logger.error(f"Error getting menu item: {item_id_or_name}")
             logger.exception(e)
             raise
 
